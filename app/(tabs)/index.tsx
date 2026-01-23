@@ -245,38 +245,64 @@ export default function WorkoutScreen() {
     ? currentWorkoutSets.filter(s => s.exercise_id === selectedExercise.id)
     : [];
 
+  // Split exercises into two rows
+  const midpoint = Math.ceil(sortedExercises.length / 2);
+  const row1Exercises = sortedExercises.slice(0, midpoint);
+  const row2Exercises = sortedExercises.slice(midpoint);
+
+  const renderActivityCard = (exercise: Exercise) => {
+    const isRecent = recentExerciseIds.includes(exercise.id);
+    const isSelected = selectedExercise?.id === exercise.id;
+
+    return (
+      <TouchableOpacity
+        key={exercise.id}
+        style={[
+          styles.activityCard,
+          isRecent && styles.activityCardRecent,
+          isSelected && styles.activityCardSelected,
+        ]}
+        onPress={() => handleActivityTap(exercise)}
+      >
+        <Text
+          style={[
+            styles.activityName,
+            isSelected && styles.activityNameSelected,
+          ]}
+          numberOfLines={2}
+        >
+          {exercise.name}
+        </Text>
+        <Text
+          style={[
+            styles.activityMuscle,
+            isSelected && styles.activityMuscleSelected,
+          ]}
+          numberOfLines={1}
+        >
+          {exercise.muscle_groups[0]}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      {/* Horizontal Activity Scroll */}
+      {/* Horizontal Activity Scroll - Two Rows */}
       <View style={styles.activitiesSection}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.horizontalScroll}
         >
-          {sortedExercises.map((exercise) => {
-            const isRecent = recentExerciseIds.includes(exercise.id);
-            const isSelected = selectedExercise?.id === exercise.id;
-
-            return (
-              <TouchableOpacity
-                key={exercise.id}
-                style={[
-                  styles.activityCard,
-                  isRecent && styles.activityCardRecent,
-                  isSelected && styles.activityCardSelected,
-                ]}
-                onPress={() => handleActivityTap(exercise)}
-              >
-                <Text style={styles.activityName} numberOfLines={2}>
-                  {exercise.name}
-                </Text>
-                <Text style={styles.activityMuscle} numberOfLines={1}>
-                  {exercise.muscle_groups[0]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          {row1Exercises.map(renderActivityCard)}
+        </ScrollView>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalScroll}
+        >
+          {row2Exercises.map(renderActivityCard)}
         </ScrollView>
       </View>
 
@@ -387,17 +413,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     paddingVertical: 12,
+    gap: 8,
   },
   horizontalScroll: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 8,
   },
   activityCard: {
     backgroundColor: '#F2F2F7',
     borderRadius: 12,
     padding: 12,
-    width: 120,
-    minHeight: 80,
+    width: 110,
+    height: 70,
     justifyContent: 'space-between',
   },
   activityCardRecent: {
@@ -427,12 +454,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   activityName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     marginBottom: 4,
+    color: '#000',
+  },
+  activityNameSelected: {
+    color: '#fff',
   },
   activityMuscle: {
-    fontSize: 11,
+    fontSize: 10,
+    color: '#666',
+  },
+  activityMuscleSelected: {
+    color: '#E3F2FD',
   },
   footer: {
     padding: 16,
