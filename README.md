@@ -12,7 +12,7 @@ Personal gym workout tracking app for iOS and Android.
 
 ## Tech Stack
 
-- **Expo SDK 52** with Expo Router
+- **Expo SDK 54** with Expo Router
 - **TypeScript**
 - **expo-sqlite** for local database
 - **Zustand** for state management
