@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useWorkoutStore } from '../../lib/store';
 import { getAllExercises, addSet, createWorkout } from '../../db/queries';
 import type { Exercise } from '../../types';
@@ -169,15 +169,14 @@ export default function ActivityScreen() {
   const todaysSets = currentWorkoutSets.filter(s => s.exercise_id === exercise.id);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>{exercise.name}</Text>
+    <>
+      <Stack.Screen options={{ headerTitle: exercise.name }} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        {/* Muscle Groups */}
         <Text style={styles.subtitle}>{exercise.muscle_groups.join(', ')}</Text>
-      </View>
 
-      {/* Input Form */}
-      <View style={styles.inputSection}>
+        {/* Input Form */}
+        <View style={styles.inputSection}>
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{config.label1}</Text>
           <View style={styles.inputRow}>
@@ -226,7 +225,8 @@ export default function ActivityScreen() {
           ))}
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
@@ -238,18 +238,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
   },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
-  },
   subtitle: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 24,
   },
   inputSection: {
     backgroundColor: '#F9F9F9',
