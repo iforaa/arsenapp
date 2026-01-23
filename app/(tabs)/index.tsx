@@ -15,11 +15,11 @@ export default function WorkoutScreen() {
   const [value2, setValue2] = useState('');
   const [cardioTrackingMode, setCardioTrackingMode] = useState<'distance' | 'calories' | 'time'>('distance');
   const [activeSeries, setActiveSeries] = useState<string | null>(null);
+  const [workoutStarted, setWorkoutStarted] = useState(false);
 
-  // Load exercises and auto-start workout
+  // Load exercises on mount
   useEffect(() => {
     loadExercises();
-    autoStartWorkout();
   }, []);
 
   async function loadExercises() {
@@ -30,17 +30,18 @@ export default function WorkoutScreen() {
     setRecentExerciseIds(recent.map(e => e.id));
   }
 
-  async function autoStartWorkout() {
-    if (!currentWorkout) {
-      try {
-        const workoutId = await createWorkout();
-        const workout = await import('../../db/queries').then(m => m.getWorkout(workoutId));
-        if (workout) {
-          setCurrentWorkout(workout);
-        }
-      } catch (error) {
-        console.error('Failed to start workout:', error);
+  async function handleStartWorkout() {
+    try {
+      const workoutId = await createWorkout();
+      const workout = await import('../../db/queries').then(m => m.getWorkout(workoutId));
+      if (workout) {
+        setCurrentWorkout(workout);
+        // Auto-start first series
+        setActiveSeries(`series_${Date.now()}`);
+        setWorkoutStarted(true);
       }
+    } catch (error) {
+      console.error('Failed to start workout:', error);
     }
   }
 
@@ -197,8 +198,9 @@ export default function WorkoutScreen() {
     return Math.max(0, newValue).toString();
   }
 
-  function handleEndSeries() {
-    setActiveSeries(null);
+  function handleNextSeries() {
+    // End current series and start a new one
+    setActiveSeries(`series_${Date.now()}`);
   }
 
   async function handleLogSet() {
@@ -221,17 +223,10 @@ export default function WorkoutScreen() {
     }
 
     try {
-      // Auto-start series if not active
-      let currentSeriesId = activeSeries;
-      if (!currentSeriesId) {
-        currentSeriesId = `series_${Date.now()}`;
-        setActiveSeries(currentSeriesId);
-      }
-
       const weight = parseFloat(value1);
       const reps = needsValue2 ? parseInt(value2) : 0;
 
-      const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps, currentSeriesId);
+      const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps, activeSeries);
 
       addSetToWorkout({
         id: setId,
@@ -240,7 +235,7 @@ export default function WorkoutScreen() {
         weight: weight,
         reps: reps,
         order_in_workout: currentWorkoutSets.length + 1,
-        series_id: currentSeriesId,
+        series_id: activeSeries,
         timestamp: new Date().toISOString(),
         exercise: selectedExercise,
       });
@@ -273,14 +268,12 @@ export default function WorkoutScreen() {
     if (!currentWorkout) return;
 
     try {
-      // End active series if any
-      if (activeSeries) {
-        handleEndSeries();
-      }
-
       const duration = Math.floor((new Date().getTime() - new Date(currentWorkout.date).getTime()) / 1000 / 60);
       await completeWorkout(currentWorkout.id, duration);
       clearWorkout();
+      setActiveSeries(null);
+      setWorkoutStarted(false);
+      setSelectedExercise(null);
     } catch (error) {
       console.error('Failed to finish workout:', error);
       Alert.alert('Error', 'Failed to finish workout');
@@ -338,23 +331,34 @@ export default function WorkoutScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Horizontal Activity Scroll - Two Rows */}
-      <View style={styles.activitiesSection}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalScroll}
-        >
-          {row1Exercises.map(renderActivityCard)}
-        </ScrollView>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalScroll}
-        >
-          {row2Exercises.map(renderActivityCard)}
-        </ScrollView>
-      </View>
+      {/* Start Workout Button - shown when workout not started */}
+      {!workoutStarted && (
+        <View style={styles.startSection}>
+          <TouchableOpacity style={styles.startButton} onPress={handleStartWorkout}>
+            <Text style={styles.startButtonText}>Start Workout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Horizontal Activity Scroll - Two Rows - shown after workout started */}
+      {workoutStarted && (
+        <View style={styles.activitiesSection}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {row1Exercises.map(renderActivityCard)}
+          </ScrollView>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {row2Exercises.map(renderActivityCard)}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Selected Exercise Form */}
@@ -475,15 +479,13 @@ export default function WorkoutScreen() {
       </ScrollView>
 
       {/* Footer Buttons */}
-      {currentWorkoutSets.length > 0 && (
+      {workoutStarted && (
         <View style={styles.footer}>
-          {activeSeries && (
-            <TouchableOpacity style={styles.seriesButton} onPress={handleEndSeries}>
-              <Text style={styles.seriesButtonText}>End Series</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.nextSeriesButton} onPress={handleNextSeries}>
+            <Text style={styles.nextSeriesButtonText}>Next Series</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.finishButton} onPress={handleFinishWorkout}>
-            <Text style={styles.finishButtonText}>Finish Workout</Text>
+            <Text style={styles.finishButtonText}>Finish</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -495,6 +497,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  startSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  startButton: {
+    backgroundColor: '#34C759',
+    paddingVertical: 20,
+    paddingHorizontal: 48,
+    borderRadius: 16,
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '700',
   },
   activitiesSection: {
     backgroundColor: '#fff',
@@ -597,33 +616,33 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     padding: 16,
-    gap: 8,
+    gap: 12,
     borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fff',
   },
-  seriesButton: {
-    flex: 1,
-    backgroundColor: '#FF9500',
-    paddingVertical: 14,
-    borderRadius: 8,
+  nextSeriesButton: {
+    flex: 2,
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
-  seriesButtonText: {
+  nextSeriesButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
   finishButton: {
     flex: 1,
-    backgroundColor: '#34C759',
-    paddingVertical: 14,
-    borderRadius: 8,
+    backgroundColor: '#8E8E93',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
   finishButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   inputSection: {
