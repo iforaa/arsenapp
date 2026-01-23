@@ -197,11 +197,6 @@ export default function WorkoutScreen() {
     return Math.max(0, newValue).toString();
   }
 
-  function handleStartSeries() {
-    const seriesId = `series_${Date.now()}`;
-    setActiveSeries(seriesId);
-  }
-
   function handleEndSeries() {
     setActiveSeries(null);
   }
@@ -226,10 +221,17 @@ export default function WorkoutScreen() {
     }
 
     try {
+      // Auto-start series if not active
+      let currentSeriesId = activeSeries;
+      if (!currentSeriesId) {
+        currentSeriesId = `series_${Date.now()}`;
+        setActiveSeries(currentSeriesId);
+      }
+
       const weight = parseFloat(value1);
       const reps = needsValue2 ? parseInt(value2) : 0;
 
-      const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps, activeSeries);
+      const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps, currentSeriesId);
 
       addSetToWorkout({
         id: setId,
@@ -238,7 +240,7 @@ export default function WorkoutScreen() {
         weight: weight,
         reps: reps,
         order_in_workout: currentWorkoutSets.length + 1,
-        series_id: activeSeries,
+        series_id: currentSeriesId,
         timestamp: new Date().toISOString(),
         exercise: selectedExercise,
       });
@@ -271,6 +273,11 @@ export default function WorkoutScreen() {
     if (!currentWorkout) return;
 
     try {
+      // End active series if any
+      if (activeSeries) {
+        handleEndSeries();
+      }
+
       const duration = Math.floor((new Date().getTime() - new Date(currentWorkout.date).getTime()) / 1000 / 60);
       await completeWorkout(currentWorkout.id, duration);
       clearWorkout();
@@ -476,13 +483,9 @@ export default function WorkoutScreen() {
       {/* Footer Buttons */}
       {currentWorkoutSets.length > 0 && (
         <View style={styles.footer}>
-          {activeSeries ? (
+          {activeSeries && (
             <TouchableOpacity style={styles.seriesButton} onPress={handleEndSeries}>
               <Text style={styles.seriesButtonText}>End Series</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.seriesButton} onPress={handleStartSeries}>
-              <Text style={styles.seriesButtonText}>Start Series</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.finishButton} onPress={handleFinishWorkout}>

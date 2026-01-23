@@ -99,7 +99,13 @@ export default function WorkoutDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerTitle: 'Workout Details' }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTitle: 'Workout Details',
+          headerBackTitle: 'Back',
+        }}
+      />
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         {/* Workout Header */}
         <View style={styles.header}>
