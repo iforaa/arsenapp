@@ -318,10 +318,11 @@ export async function createExercise(
 export async function getRecentExercises(limit: number = 10): Promise<Exercise[]> {
   const db = getDatabase();
   const results = await db`
-    SELECT DISTINCT exercises.*
+    SELECT exercises.*, MAX(sets.timestamp) as last_used
     FROM exercises
     INNER JOIN sets ON exercises.id = sets.exercise_id
-    ORDER BY sets.timestamp DESC
+    GROUP BY exercises.id
+    ORDER BY last_used DESC
     LIMIT ${limit}
   `;
 
