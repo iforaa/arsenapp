@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { initDatabase } from '../db/database';
 import { seedDefaultExercises } from '../db/schema';
@@ -17,5 +18,12 @@ export default function RootLayout() {
     setupDatabase();
   }, []);
 
-  return <Stack />;
+  return (
+    <>
+      <StatusBar style="auto" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </>
+  );
 }
