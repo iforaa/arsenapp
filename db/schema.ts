@@ -2,24 +2,7 @@ import { getDatabase } from './database';
 import type { TrackingType } from '../types';
 
 export async function seedDefaultExercises(): Promise<void> {
-  const db = await getDatabase();
-
-  // Check if we need to add tracking_type column (migration)
-  try {
-    await db.execAsync(`
-      ALTER TABLE exercises ADD COLUMN tracking_type TEXT NOT NULL DEFAULT 'weight_reps';
-    `);
-    console.log('Added tracking_type column');
-
-    // Update existing Pull Up to be reps_only
-    await db.runAsync(
-      'UPDATE exercises SET tracking_type = ? WHERE name = ?',
-      'reps_only',
-      'Pull Up'
-    );
-  } catch (e) {
-    // Column already exists, that's fine
-  }
+  const db = getDatabase();
 
   const defaultExercises: Array<{
     name: string;
@@ -63,20 +46,23 @@ export async function seedDefaultExercises(): Promise<void> {
   // Insert exercises that don't exist yet
   let addedCount = 0;
   for (const exercise of defaultExercises) {
-    const existing = await db.getFirstAsync<{ count: number }>(
-      'SELECT COUNT(*) as count FROM exercises WHERE name = ?',
-      exercise.name
-    );
+    const existing = await db`
+      SELECT COUNT(*) as count
+      FROM exercises
+      WHERE name = ${exercise.name}
+    `;
 
-    if (!existing || existing.count === 0) {
-      await db.runAsync(
-        'INSERT INTO exercises (name, muscle_groups, equipment, tracking_type, is_custom) VALUES (?, ?, ?, ?, ?)',
-        exercise.name,
-        JSON.stringify(exercise.muscle_groups),
-        exercise.equipment,
-        exercise.tracking_type,
-        0
-      );
+    if (existing[0].count === 0) {
+      await db`
+        INSERT INTO exercises (name, muscle_groups, equipment, tracking_type, is_custom)
+        VALUES (
+          ${exercise.name},
+          ${JSON.stringify(exercise.muscle_groups)},
+          ${exercise.equipment},
+          ${exercise.tracking_type},
+          false
+        )
+      `;
       addedCount++;
     }
   }

@@ -10,11 +10,13 @@ import type { Exercise, Workout, Set, MuscleGroup, Equipment } from '../types';
  * @returns The ID of the newly created workout
  */
 export async function createWorkout(): Promise<number> {
-  const db = await getDatabase();
-  const result = await db.runAsync(
-    'INSERT INTO workouts (date, completed) VALUES (datetime("now"), 0)'
-  );
-  return result.lastInsertRowId;
+  const db = getDatabase();
+  const result = await db`
+    INSERT INTO workouts (date, completed)
+    VALUES (NOW(), false)
+    RETURNING id
+  `;
+  return result[0].id;
 }
 
 /**
@@ -23,23 +25,20 @@ export async function createWorkout(): Promise<number> {
  * @returns The workout or null if not found
  */
 export async function getWorkout(id: number): Promise<Workout | null> {
-  const db = await getDatabase();
-  const result = await db.getFirstAsync<{
-    id: number;
-    date: string;
-    duration_minutes: number | null;
-    notes: string;
-    completed: number;
-  }>('SELECT * FROM workouts WHERE id = ?', [id]);
+  const db = getDatabase();
+  const result = await db`
+    SELECT * FROM workouts WHERE id = ${id}
+  `;
 
-  if (!result) return null;
+  if (result.length === 0) return null;
 
+  const row = result[0];
   return {
-    id: result.id,
-    date: result.date,
-    duration_minutes: result.duration_minutes,
-    notes: result.notes,
-    completed: result.completed === 1,
+    id: row.id,
+    date: row.date.toISOString(),
+    duration_minutes: row.duration_minutes,
+    notes: row.notes,
+    completed: row.completed,
   };
 }
 
@@ -48,23 +47,23 @@ export async function getWorkout(id: number): Promise<Workout | null> {
  * @returns Today's workout or null
  */
 export async function getTodaysWorkout(): Promise<Workout | null> {
-  const db = await getDatabase();
-  const result = await db.getFirstAsync<{
-    id: number;
-    date: string;
-    duration_minutes: number | null;
-    notes: string;
-    completed: number;
-  }>('SELECT * FROM workouts WHERE date(date) = date("now") ORDER BY date DESC LIMIT 1');
+  const db = getDatabase();
+  const result = await db`
+    SELECT * FROM workouts
+    WHERE DATE(date) = CURRENT_DATE
+    ORDER BY date DESC
+    LIMIT 1
+  `;
 
-  if (!result) return null;
+  if (result.length === 0) return null;
 
+  const row = result[0];
   return {
-    id: result.id,
-    date: result.date,
-    duration_minutes: result.duration_minutes,
-    notes: result.notes,
-    completed: result.completed === 1,
+    id: row.id,
+    date: row.date.toISOString(),
+    duration_minutes: row.duration_minutes,
+    notes: row.notes,
+    completed: row.completed,
   };
 }
 
@@ -74,11 +73,12 @@ export async function getTodaysWorkout(): Promise<Workout | null> {
  * @param durationMinutes - Duration of the workout in minutes
  */
 export async function completeWorkout(id: number, durationMinutes: number): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync(
-    'UPDATE workouts SET completed = 1, duration_minutes = ? WHERE id = ?',
-    [durationMinutes, id]
-  );
+  const db = getDatabase();
+  await db`
+    UPDATE workouts
+    SET completed = true, duration_minutes = ${durationMinutes}
+    WHERE id = ${id}
+  `;
 }
 
 /**
@@ -87,21 +87,20 @@ export async function completeWorkout(id: number, durationMinutes: number): Prom
  * @returns Array of recent completed workouts
  */
 export async function getRecentWorkouts(limit: number = 10): Promise<Workout[]> {
-  const db = await getDatabase();
-  const results = await db.getAllAsync<{
-    id: number;
-    date: string;
-    duration_minutes: number | null;
-    notes: string;
-    completed: number;
-  }>('SELECT * FROM workouts WHERE completed = 1 ORDER BY date DESC LIMIT ?', [limit]);
+  const db = getDatabase();
+  const results = await db`
+    SELECT * FROM workouts
+    WHERE completed = true
+    ORDER BY date DESC
+    LIMIT ${limit}
+  `;
 
   return results.map((row) => ({
     id: row.id,
-    date: row.date,
+    date: row.date.toISOString(),
     duration_minutes: row.duration_minutes,
     notes: row.notes,
-    completed: row.completed === 1,
+    completed: row.completed,
   }));
 }
 
@@ -125,22 +124,24 @@ export async function addSet(
   reps: number,
   seriesId?: string | null
 ): Promise<number> {
-  const db = await getDatabase();
+  const db = getDatabase();
 
   // Get the max order for this workout and increment
-  const maxOrderResult = await db.getFirstAsync<{ max_order: number | null }>(
-    'SELECT MAX(order_in_workout) as max_order FROM sets WHERE workout_id = ?',
-    [workoutId]
-  );
+  const maxOrderResult = await db`
+    SELECT MAX(order_in_workout) as max_order
+    FROM sets
+    WHERE workout_id = ${workoutId}
+  `;
 
-  const nextOrder = (maxOrderResult?.max_order ?? -1) + 1;
+  const nextOrder = (maxOrderResult[0]?.max_order ?? -1) + 1;
 
-  const result = await db.runAsync(
-    'INSERT INTO sets (workout_id, exercise_id, weight, reps, order_in_workout, series_id, timestamp) VALUES (?, ?, ?, ?, ?, ?, datetime("now"))',
-    [workoutId, exerciseId, weight, reps, nextOrder, seriesId]
-  );
+  const result = await db`
+    INSERT INTO sets (workout_id, exercise_id, weight, reps, order_in_workout, series_id, timestamp)
+    VALUES (${workoutId}, ${exerciseId}, ${weight}, ${reps}, ${nextOrder}, ${seriesId}, NOW())
+    RETURNING id
+  `;
 
-  return result.lastInsertRowId;
+  return result[0].id;
 }
 
 /**
@@ -148,8 +149,8 @@ export async function addSet(
  * @param id - The set ID
  */
 export async function deleteSet(id: number): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync('DELETE FROM sets WHERE id = ?', [id]);
+  const db = getDatabase();
+  await db`DELETE FROM sets WHERE id = ${id}`;
 }
 
 /**
@@ -158,30 +159,26 @@ export async function deleteSet(id: number): Promise<void> {
  * @returns The most recent set or null if no sets exist
  */
 export async function getLastSetForExercise(exerciseId: number): Promise<Set | null> {
-  const db = await getDatabase();
-  const result = await db.getFirstAsync<{
-    id: number;
-    workout_id: number;
-    exercise_id: number;
-    weight: number;
-    reps: number;
-    order_in_workout: number;
-    timestamp: string;
-  }>(
-    'SELECT * FROM sets WHERE exercise_id = ? ORDER BY timestamp DESC LIMIT 1',
-    [exerciseId]
-  );
+  const db = getDatabase();
+  const result = await db`
+    SELECT * FROM sets
+    WHERE exercise_id = ${exerciseId}
+    ORDER BY timestamp DESC
+    LIMIT 1
+  `;
 
-  if (!result) return null;
+  if (result.length === 0) return null;
 
+  const row = result[0];
   return {
-    id: result.id,
-    workout_id: result.workout_id,
-    exercise_id: result.exercise_id,
-    weight: result.weight,
-    reps: result.reps,
-    order_in_workout: result.order_in_workout,
-    timestamp: result.timestamp,
+    id: row.id,
+    workout_id: row.workout_id,
+    exercise_id: row.exercise_id,
+    weight: row.weight,
+    reps: row.reps,
+    order_in_workout: row.order_in_workout,
+    series_id: row.series_id,
+    timestamp: row.timestamp.toISOString(),
   };
 }
 
@@ -193,27 +190,11 @@ export async function getLastSetForExercise(exerciseId: number): Promise<Set | n
 export async function getWorkoutSets(
   workoutId: number
 ): Promise<(Set & { exercise: Exercise })[]> {
-  const db = await getDatabase();
-  const results = await db.getAllAsync<{
-    id: number;
-    workout_id: number;
-    exercise_id: number;
-    weight: number;
-    reps: number;
-    order_in_workout: number;
-    series_id: string | null;
-    timestamp: string;
-    exercise_name: string;
-    muscle_groups: string;
-    equipment: string;
-    tracking_type: string;
-    is_custom: number;
-    media_paths: string;
-    notes: string;
-    created_at: string;
-  }>(
-    `SELECT
+  const db = getDatabase();
+  const results = await db`
+    SELECT
       sets.*,
+      exercises.id as exercise_id,
       exercises.name as exercise_name,
       exercises.muscle_groups,
       exercises.equipment,
@@ -224,10 +205,9 @@ export async function getWorkoutSets(
       exercises.created_at
     FROM sets
     INNER JOIN exercises ON sets.exercise_id = exercises.id
-    WHERE sets.workout_id = ?
-    ORDER BY sets.order_in_workout ASC`,
-    [workoutId]
-  );
+    WHERE sets.workout_id = ${workoutId}
+    ORDER BY sets.order_in_workout ASC
+  `;
 
   return results.map((row) => ({
     id: row.id,
@@ -237,17 +217,17 @@ export async function getWorkoutSets(
     reps: row.reps,
     order_in_workout: row.order_in_workout,
     series_id: row.series_id,
-    timestamp: row.timestamp,
+    timestamp: row.timestamp.toISOString(),
     exercise: {
       id: row.exercise_id,
       name: row.exercise_name,
-      muscle_groups: JSON.parse(row.muscle_groups) as MuscleGroup[],
+      muscle_groups: row.muscle_groups as MuscleGroup[],
       equipment: row.equipment as Equipment,
       tracking_type: row.tracking_type as any,
-      is_custom: row.is_custom === 1,
-      media_paths: JSON.parse(row.media_paths) as string[],
+      is_custom: row.is_custom,
+      media_paths: row.media_paths as string[],
       notes: row.notes,
-      created_at: row.created_at,
+      created_at: row.created_at.toISOString(),
     },
   }));
 }
@@ -261,29 +241,21 @@ export async function getWorkoutSets(
  * @returns Array of all exercises
  */
 export async function getAllExercises(): Promise<Exercise[]> {
-  const db = await getDatabase();
-  const results = await db.getAllAsync<{
-    id: number;
-    name: string;
-    muscle_groups: string;
-    equipment: string;
-    tracking_type: string;
-    is_custom: number;
-    media_paths: string;
-    notes: string;
-    created_at: string;
-  }>('SELECT * FROM exercises ORDER BY name ASC');
+  const db = getDatabase();
+  const results = await db`
+    SELECT * FROM exercises ORDER BY name ASC
+  `;
 
   return results.map((row) => ({
     id: row.id,
     name: row.name,
-    muscle_groups: JSON.parse(row.muscle_groups) as MuscleGroup[],
+    muscle_groups: row.muscle_groups as MuscleGroup[],
     equipment: row.equipment as Equipment,
     tracking_type: row.tracking_type as any,
-    is_custom: row.is_custom === 1,
-    media_paths: JSON.parse(row.media_paths) as string[],
+    is_custom: row.is_custom,
+    media_paths: row.media_paths as string[],
     notes: row.notes,
-    created_at: row.created_at,
+    created_at: row.created_at.toISOString(),
   }));
 }
 
@@ -293,29 +265,23 @@ export async function getAllExercises(): Promise<Exercise[]> {
  * @returns Array of matching exercises
  */
 export async function searchExercises(query: string): Promise<Exercise[]> {
-  const db = await getDatabase();
-  const results = await db.getAllAsync<{
-    id: number;
-    name: string;
-    muscle_groups: string;
-    equipment: string;
-    tracking_type: string;
-    is_custom: number;
-    media_paths: string;
-    notes: string;
-    created_at: string;
-  }>('SELECT * FROM exercises WHERE name LIKE ? ORDER BY name ASC', [`%${query}%`]);
+  const db = getDatabase();
+  const results = await db`
+    SELECT * FROM exercises
+    WHERE name ILIKE ${'%' + query + '%'}
+    ORDER BY name ASC
+  `;
 
   return results.map((row) => ({
     id: row.id,
     name: row.name,
-    muscle_groups: JSON.parse(row.muscle_groups) as MuscleGroup[],
+    muscle_groups: row.muscle_groups as MuscleGroup[],
     equipment: row.equipment as Equipment,
     tracking_type: row.tracking_type as any,
-    is_custom: row.is_custom === 1,
-    media_paths: JSON.parse(row.media_paths) as string[],
+    is_custom: row.is_custom,
+    media_paths: row.media_paths as string[],
     notes: row.notes,
-    created_at: row.created_at,
+    created_at: row.created_at.toISOString(),
   }));
 }
 
@@ -335,12 +301,13 @@ export async function createExercise(
   notes: string = '',
   mediaPaths: string[] = []
 ): Promise<number> {
-  const db = await getDatabase();
-  const result = await db.runAsync(
-    'INSERT INTO exercises (name, muscle_groups, equipment, is_custom, media_paths, notes, created_at) VALUES (?, ?, ?, 1, ?, ?, datetime("now"))',
-    [name, JSON.stringify(muscleGroups), equipment, JSON.stringify(mediaPaths), notes]
-  );
-  return result.lastInsertRowId;
+  const db = getDatabase();
+  const result = await db`
+    INSERT INTO exercises (name, muscle_groups, equipment, is_custom, media_paths, notes, created_at)
+    VALUES (${name}, ${JSON.stringify(muscleGroups)}, ${equipment}, true, ${JSON.stringify(mediaPaths)}, ${notes}, NOW())
+    RETURNING id
+  `;
+  return result[0].id;
 }
 
 /**
@@ -349,35 +316,24 @@ export async function createExercise(
  * @returns Array of recently used exercises
  */
 export async function getRecentExercises(limit: number = 10): Promise<Exercise[]> {
-  const db = await getDatabase();
-  const results = await db.getAllAsync<{
-    id: number;
-    name: string;
-    muscle_groups: string;
-    equipment: string;
-    tracking_type: string;
-    is_custom: number;
-    media_paths: string;
-    notes: string;
-    created_at: string;
-  }>(
-    `SELECT DISTINCT exercises.*
+  const db = getDatabase();
+  const results = await db`
+    SELECT DISTINCT exercises.*
     FROM exercises
     INNER JOIN sets ON exercises.id = sets.exercise_id
     ORDER BY sets.timestamp DESC
-    LIMIT ?`,
-    [limit]
-  );
+    LIMIT ${limit}
+  `;
 
   return results.map((row) => ({
     id: row.id,
     name: row.name,
-    muscle_groups: JSON.parse(row.muscle_groups) as MuscleGroup[],
+    muscle_groups: row.muscle_groups as MuscleGroup[],
     equipment: row.equipment as Equipment,
     tracking_type: row.tracking_type as any,
-    is_custom: row.is_custom === 1,
-    media_paths: JSON.parse(row.media_paths) as string[],
+    is_custom: row.is_custom,
+    media_paths: row.media_paths as string[],
     notes: row.notes,
-    created_at: row.created_at,
+    created_at: row.created_at.toISOString(),
   }));
 }
