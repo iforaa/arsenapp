@@ -13,6 +13,7 @@ export default function WorkoutScreen() {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [value1, setValue1] = useState('');
   const [value2, setValue2] = useState('');
+  const [cardioTrackingMode, setCardioTrackingMode] = useState<'distance' | 'calories' | 'time'>('distance');
 
   // Load exercises and auto-start workout
   useEffect(() => {
@@ -76,6 +77,12 @@ export default function WorkoutScreen() {
   async function handleActivityTap(exercise: Exercise) {
     setSelectedExercise(exercise);
 
+    // Default cardio mode to distance
+    const isCardio = ['cardio', 'legs'].some(mg => exercise.muscle_groups.includes(mg as any));
+    if (isCardio) {
+      setCardioTrackingMode('distance');
+    }
+
     // Load last set for this exercise to pre-fill inputs
     const lastSet = await getLastSetForExercise(exercise.id);
     if (lastSet) {
@@ -89,7 +96,52 @@ export default function WorkoutScreen() {
     }
   }
 
-  function getInputConfig(trackingType: string) {
+  function getInputConfig(trackingType: string, exercise?: Exercise) {
+    // Check if it's a cardio exercise
+    const isCardio = exercise?.muscle_groups.includes('cardio' as any) ||
+                     (exercise?.muscle_groups.includes('legs' as any) &&
+                      ['Stationary Bike', 'Treadmill', 'Elliptical', 'Running', 'Cycling', 'Rowing Machine'].includes(exercise.name));
+
+    if (isCardio) {
+      // Use cardio tracking mode
+      switch (cardioTrackingMode) {
+        case 'distance':
+          return {
+            label1: 'Distance',
+            unit1: 'km',
+            placeholder1: '0',
+            step1: 0.5,
+            label2: null,
+            unit2: null,
+            placeholder2: null,
+            step2: null
+          };
+        case 'calories':
+          return {
+            label1: 'Calories',
+            unit1: 'kcal',
+            placeholder1: '0',
+            step1: 10,
+            label2: null,
+            unit2: null,
+            placeholder2: null,
+            step2: null
+          };
+        case 'time':
+          return {
+            label1: 'Duration',
+            unit1: 'min',
+            placeholder1: '0',
+            step1: 1,
+            label2: null,
+            unit2: null,
+            placeholder2: null,
+            step2: null
+          };
+      }
+    }
+
+    // Non-cardio exercises use original tracking type
     switch (trackingType) {
       case 'weight_reps':
         return {
@@ -108,28 +160,6 @@ export default function WorkoutScreen() {
           unit1: 'seconds',
           placeholder1: '0',
           step1: 5,
-          label2: null,
-          unit2: null,
-          placeholder2: null,
-          step2: null
-        };
-      case 'calories':
-        return {
-          label1: 'Calories',
-          unit1: 'kcal',
-          placeholder1: '0',
-          step1: 10,
-          label2: null,
-          unit2: null,
-          placeholder2: null,
-          step2: null
-        };
-      case 'distance':
-        return {
-          label1: 'Distance',
-          unit1: 'km',
-          placeholder1: '0',
-          step1: 0.5,
           label2: null,
           unit2: null,
           placeholder2: null,
@@ -239,7 +269,10 @@ export default function WorkoutScreen() {
     }
   }
 
-  const config = selectedExercise ? getInputConfig(selectedExercise.tracking_type) : null;
+  const config = selectedExercise ? getInputConfig(selectedExercise.tracking_type, selectedExercise) : null;
+  const isCardio = selectedExercise?.muscle_groups.includes('cardio' as any) ||
+                   (selectedExercise?.muscle_groups.includes('legs' as any) &&
+                    ['Stationary Bike', 'Treadmill', 'Elliptical', 'Running', 'Cycling', 'Rowing Machine'].includes(selectedExercise.name));
   const todaysSetsForExercise = selectedExercise
     ? currentWorkoutSets.filter(s => s.exercise_id === selectedExercise.id)
     : [];
@@ -312,16 +345,40 @@ export default function WorkoutScreen() {
             <Text style={styles.selectedTitle}>{selectedExercise.name}</Text>
             <Text style={styles.selectedSubtitle}>{selectedExercise.muscle_groups.join(', ')}</Text>
 
+            {/* Cardio Mode Selector */}
+            {isCardio && (
+              <View style={styles.modeSelector}>
+                <TouchableOpacity
+                  style={[styles.modeButton, cardioTrackingMode === 'distance' && styles.modeButtonActive]}
+                  onPress={() => setCardioTrackingMode('distance')}
+                >
+                  <Text style={[styles.modeButtonText, cardioTrackingMode === 'distance' && styles.modeButtonTextActive]}>
+                    Distance
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modeButton, cardioTrackingMode === 'calories' && styles.modeButtonActive]}
+                  onPress={() => setCardioTrackingMode('calories')}
+                >
+                  <Text style={[styles.modeButtonText, cardioTrackingMode === 'calories' && styles.modeButtonTextActive]}>
+                    Calories
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modeButton, cardioTrackingMode === 'time' && styles.modeButtonActive]}
+                  onPress={() => setCardioTrackingMode('time')}
+                >
+                  <Text style={[styles.modeButtonText, cardioTrackingMode === 'time' && styles.modeButtonTextActive]}>
+                    Time
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             <View style={styles.inputSection}>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>{config.label1}</Text>
                 <View style={styles.inputRow}>
-                  <TouchableOpacity
-                    style={styles.adjustButton}
-                    onPress={() => setValue1(adjustValue(value1, config.step1, 'down'))}
-                  >
-                    <Text style={styles.adjustButtonText}>−</Text>
-                  </TouchableOpacity>
                   <TextInput
                     style={styles.input}
                     value={value1}
@@ -329,12 +386,20 @@ export default function WorkoutScreen() {
                     keyboardType="decimal-pad"
                     placeholder={config.placeholder1}
                   />
-                  <TouchableOpacity
-                    style={styles.adjustButton}
-                    onPress={() => setValue1(adjustValue(value1, config.step1, 'up'))}
-                  >
-                    <Text style={styles.adjustButtonText}>+</Text>
-                  </TouchableOpacity>
+                  <View style={styles.adjustButtons}>
+                    <TouchableOpacity
+                      style={styles.adjustButton}
+                      onPress={() => setValue1(adjustValue(value1, config.step1, 'down'))}
+                    >
+                      <Text style={styles.adjustButtonText}>−</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.adjustButton}
+                      onPress={() => setValue1(adjustValue(value1, config.step1, 'up'))}
+                    >
+                      <Text style={styles.adjustButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
                   {config.unit1 && <Text style={styles.unit}>{config.unit1}</Text>}
                 </View>
               </View>
@@ -343,12 +408,6 @@ export default function WorkoutScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>{config.label2}</Text>
                   <View style={styles.inputRow}>
-                    <TouchableOpacity
-                      style={styles.adjustButton}
-                      onPress={() => setValue2(adjustValue(value2, config.step2!, 'down'))}
-                    >
-                      <Text style={styles.adjustButtonText}>−</Text>
-                    </TouchableOpacity>
                     <TextInput
                       style={styles.input}
                       value={value2}
@@ -356,12 +415,20 @@ export default function WorkoutScreen() {
                       keyboardType="number-pad"
                       placeholder={config.placeholder2 || '0'}
                     />
-                    <TouchableOpacity
-                      style={styles.adjustButton}
-                      onPress={() => setValue2(adjustValue(value2, config.step2!, 'up'))}
-                    >
-                      <Text style={styles.adjustButtonText}>+</Text>
-                    </TouchableOpacity>
+                    <View style={styles.adjustButtons}>
+                      <TouchableOpacity
+                        style={styles.adjustButton}
+                        onPress={() => setValue2(adjustValue(value2, config.step2!, 'down'))}
+                      >
+                        <Text style={styles.adjustButtonText}>−</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.adjustButton}
+                        onPress={() => setValue2(adjustValue(value2, config.step2!, 'up'))}
+                      >
+                        <Text style={styles.adjustButtonText}>+</Text>
+                      </TouchableOpacity>
+                    </View>
                     {config.unit2 && <Text style={styles.unit}>{config.unit2}</Text>}
                   </View>
                 </View>
@@ -450,7 +517,31 @@ const styles = StyleSheet.create({
   selectedSubtitle: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 16,
+  },
+  modeSelector: {
+    flexDirection: 'row',
+    gap: 8,
     marginBottom: 20,
+  },
+  modeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F2F2F7',
+    alignItems: 'center',
+  },
+  modeButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  modeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  modeButtonTextActive: {
+    color: '#fff',
   },
   activityName: {
     fontSize: 12,
@@ -505,17 +596,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  adjustButtons: {
+    flexDirection: 'row',
+    gap: 6,
+  },
   adjustButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     backgroundColor: '#007AFF',
-    borderRadius: 22,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   adjustButtonText: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600',
   },
   input: {
