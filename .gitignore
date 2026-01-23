@@ -1,15 +1,16 @@
-# Worktrees
-.worktrees/
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# Dependencies
+# dependencies
 node_modules/
 
 # Expo
 .expo/
 dist/
 web-build/
+expo-env.d.ts
 
 # Native
+.kotlin/
 *.orig.*
 *.jks
 *.p8
@@ -20,17 +21,21 @@ web-build/
 # Metro
 .metro-health-check*
 
-# Debug
+# debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# Macros
-*.hprof
+# macOS
+.DS_Store
+*.pem
 
-# Local env files
+# local env files
 .env*.local
-.env
 
-# Typescript
+# typescript
 *.tsbuildinfo
+
+# generated native folders
+/ios
+/android
