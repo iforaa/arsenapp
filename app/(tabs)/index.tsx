@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useWorkoutStore } from '../../lib/store';
 import { createWorkout, completeWorkout, getAllExercises, getRecentExercises, addSet, getLastSetForExercise } from '../../db/queries';
 import type { Exercise } from '../../types';
-import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function WorkoutScreen() {
   const router = useRouter();
@@ -15,9 +13,6 @@ export default function WorkoutScreen() {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [value1, setValue1] = useState('');
   const [value2, setValue2] = useState('');
-
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['75%'], []);
 
   // Load exercises and auto-start workout
   useEffect(() => {
@@ -92,8 +87,6 @@ export default function WorkoutScreen() {
       setValue1('');
       setValue2('');
     }
-
-    bottomSheetRef.current?.expand();
   }
 
   function getInputConfig(trackingType: string) {
@@ -211,7 +204,6 @@ export default function WorkoutScreen() {
 
       setValue1('');
       setValue2('');
-      bottomSheetRef.current?.close();
     } catch (error) {
       console.error('Failed to add set:', error);
       Alert.alert('Error', 'Failed to log');
@@ -254,51 +246,123 @@ export default function WorkoutScreen() {
     : [];
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <View style={styles.container}>
+      {/* Horizontal Activity Scroll */}
+      <View style={styles.activitiesSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalScroll}
+        >
+          {sortedExercises.map((exercise) => {
+            const isRecent = recentExerciseIds.includes(exercise.id);
+            const isSelected = selectedExercise?.id === exercise.id;
+
+            return (
+              <TouchableOpacity
+                key={exercise.id}
+                style={[
+                  styles.activityCard,
+                  isRecent && styles.activityCardRecent,
+                  isSelected && styles.activityCardSelected,
+                ]}
+                onPress={() => handleActivityTap(exercise)}
+              >
+                <Text style={styles.activityName} numberOfLines={2}>
+                  {exercise.name}
+                </Text>
+                <Text style={styles.activityMuscle} numberOfLines={1}>
+                  {exercise.muscle_groups[0]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Activity Grid */}
-        <View style={styles.activitiesSection}>
-          <Text style={styles.sectionTitle}>Activities</Text>
-          <View style={styles.activityGrid}>
-            {sortedExercises.map((exercise, index) => {
-              const isRecent = recentExerciseIds.includes(exercise.id);
+        {/* Selected Exercise Form */}
+        {selectedExercise && config && (
+          <View style={styles.selectedSection}>
+            <Text style={styles.selectedTitle}>{selectedExercise.name}</Text>
+            <Text style={styles.selectedSubtitle}>{selectedExercise.muscle_groups.join(', ')}</Text>
 
-              return (
-                <TouchableOpacity
-                  key={exercise.id}
-                  style={[
-                    styles.activityCard,
-                    isRecent && styles.activityCardRecent,
-                  ]}
-                  onPress={() => handleActivityTap(exercise)}
-                >
-                  <Text style={styles.activityName} numberOfLines={2}>
-                    {exercise.name}
-                  </Text>
-                  <Text style={styles.activityMuscle} numberOfLines={1}>
-                    {exercise.muscle_groups[0]}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Logged Sets */}
-        {currentWorkoutSets.length > 0 && (
-          <View style={styles.setsSection}>
-            <Text style={styles.sectionTitle}>Today's Log ({currentWorkoutSets.length})</Text>
-            {currentWorkoutSets.map((set, index) => (
-              <View key={set.id} style={styles.setCard}>
-                <View style={styles.setHeader}>
-                  <Text style={styles.setNumber}>#{index + 1}</Text>
-                  <Text style={styles.exerciseName}>{set.exercise.name}</Text>
+            <View style={styles.inputSection}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{config.label1}</Text>
+                <View style={styles.inputRow}>
+                  <TouchableOpacity
+                    style={styles.adjustButton}
+                    onPress={() => setValue1(adjustValue(value1, config.step1, 'down'))}
+                  >
+                    <Text style={styles.adjustButtonText}>−</Text>
+                  </TouchableOpacity>
+                  <TextInput
+                    style={styles.input}
+                    value={value1}
+                    onChangeText={setValue1}
+                    keyboardType="decimal-pad"
+                    placeholder={config.placeholder1}
+                  />
+                  <TouchableOpacity
+                    style={styles.adjustButton}
+                    onPress={() => setValue1(adjustValue(value1, config.step1, 'up'))}
+                  >
+                    <Text style={styles.adjustButtonText}>+</Text>
+                  </TouchableOpacity>
+                  {config.unit1 && <Text style={styles.unit}>{config.unit1}</Text>}
                 </View>
-                <Text style={styles.setDetails}>{getSetDisplay(set)}</Text>
               </View>
-            ))}
+
+              {config.label2 && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{config.label2}</Text>
+                  <View style={styles.inputRow}>
+                    <TouchableOpacity
+                      style={styles.adjustButton}
+                      onPress={() => setValue2(adjustValue(value2, config.step2!, 'down'))}
+                    >
+                      <Text style={styles.adjustButtonText}>−</Text>
+                    </TouchableOpacity>
+                    <TextInput
+                      style={styles.input}
+                      value={value2}
+                      onChangeText={setValue2}
+                      keyboardType="number-pad"
+                      placeholder={config.placeholder2 || '0'}
+                    />
+                    <TouchableOpacity
+                      style={styles.adjustButton}
+                      onPress={() => setValue2(adjustValue(value2, config.step2!, 'up'))}
+                    >
+                      <Text style={styles.adjustButtonText}>+</Text>
+                    </TouchableOpacity>
+                    {config.unit2 && <Text style={styles.unit}>{config.unit2}</Text>}
+                  </View>
+                </View>
+              )}
+
+              <TouchableOpacity style={styles.logButton} onPress={handleLogSet}>
+                <Text style={styles.logButtonText}>Log Set</Text>
+              </TouchableOpacity>
+            </View>
+
+            {todaysSetsForExercise.length > 0 && (
+              <View style={styles.historySection}>
+                <Text style={styles.historyTitle}>Today ({todaysSetsForExercise.length})</Text>
+                {todaysSetsForExercise.map((set, index) => (
+                  <View key={set.id} style={styles.setCard}>
+                    <Text style={styles.setNumber}>#{index + 1}</Text>
+                    <Text style={styles.setDetails}>
+                      {getSetDisplayForBottomSheet(set.weight, set.reps, selectedExercise.tracking_type)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         )}
+
       </ScrollView>
 
       {/* Finish Workout Button */}
@@ -309,98 +373,7 @@ export default function WorkoutScreen() {
           </TouchableOpacity>
         </View>
       )}
-
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        backgroundStyle={styles.bottomSheetBackground}
-      >
-        <BottomSheetScrollView contentContainerStyle={styles.bottomSheetContent}>
-          {selectedExercise && config && (
-            <>
-              <Text style={styles.bottomSheetTitle}>{selectedExercise.name}</Text>
-              <Text style={styles.bottomSheetSubtitle}>{selectedExercise.muscle_groups.join(', ')}</Text>
-
-              <View style={styles.inputSection}>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>{config.label1}</Text>
-                  <View style={styles.inputRow}>
-                    <TouchableOpacity
-                      style={styles.adjustButton}
-                      onPress={() => setValue1(adjustValue(value1, config.step1, 'down'))}
-                    >
-                      <Text style={styles.adjustButtonText}>−</Text>
-                    </TouchableOpacity>
-                    <TextInput
-                      style={styles.input}
-                      value={value1}
-                      onChangeText={setValue1}
-                      keyboardType="decimal-pad"
-                      placeholder={config.placeholder1}
-                    />
-                    <TouchableOpacity
-                      style={styles.adjustButton}
-                      onPress={() => setValue1(adjustValue(value1, config.step1, 'up'))}
-                    >
-                      <Text style={styles.adjustButtonText}>+</Text>
-                    </TouchableOpacity>
-                    {config.unit1 && <Text style={styles.unit}>{config.unit1}</Text>}
-                  </View>
-                </View>
-
-                {config.label2 && (
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>{config.label2}</Text>
-                    <View style={styles.inputRow}>
-                      <TouchableOpacity
-                        style={styles.adjustButton}
-                        onPress={() => setValue2(adjustValue(value2, config.step2!, 'down'))}
-                      >
-                        <Text style={styles.adjustButtonText}>−</Text>
-                      </TouchableOpacity>
-                      <TextInput
-                        style={styles.input}
-                        value={value2}
-                        onChangeText={setValue2}
-                        keyboardType="number-pad"
-                        placeholder={config.placeholder2 || '0'}
-                      />
-                      <TouchableOpacity
-                        style={styles.adjustButton}
-                        onPress={() => setValue2(adjustValue(value2, config.step2!, 'up'))}
-                      >
-                        <Text style={styles.adjustButtonText}>+</Text>
-                      </TouchableOpacity>
-                      {config.unit2 && <Text style={styles.unit}>{config.unit2}</Text>}
-                    </View>
-                  </View>
-                )}
-
-                <TouchableOpacity style={styles.logButton} onPress={handleLogSet}>
-                  <Text style={styles.logButtonText}>Log Set</Text>
-                </TouchableOpacity>
-              </View>
-
-              {todaysSetsForExercise.length > 0 && (
-                <View style={styles.historySection}>
-                  <Text style={styles.historyTitle}>Today ({todaysSetsForExercise.length})</Text>
-                  {todaysSetsForExercise.map((set, index) => (
-                    <View key={set.id} style={styles.bottomSheetSetCard}>
-                      <Text style={styles.setNumber}>#{index + 1}</Text>
-                      <Text style={styles.setDetails}>
-                        {getSetDisplayForBottomSheet(set.weight, set.reps, selectedExercise.tracking_type)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </>
-          )}
-        </BottomSheetScrollView>
-      </BottomSheet>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
@@ -409,75 +382,57 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  activitiesSection: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingVertical: 12,
+  },
+  horizontalScroll: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  activityCard: {
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+    padding: 12,
+    width: 120,
+    minHeight: 80,
+    justifyContent: 'space-between',
+  },
+  activityCardRecent: {
+    backgroundColor: '#E3F2FD',
+  },
+  activityCardSelected: {
+    backgroundColor: '#007AFF',
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
   },
-  activitiesSection: {
-    marginBottom: 20,
+  selectedSection: {
+    marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 12,
+  selectedTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#000',
+    marginBottom: 4,
   },
-  activityGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  activityCard: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    padding: 12,
-    width: '31%',
-    minHeight: 70,
-    justifyContent: 'space-between',
-  },
-  activityCardRecent: {
-    backgroundColor: '#E3F2FD',
+  selectedSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
   },
   activityName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#000',
     marginBottom: 4,
   },
   activityMuscle: {
     fontSize: 11,
-    color: '#666',
-  },
-  setsSection: {
-    marginBottom: 24,
-  },
-  setCard: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-  },
-  setHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  setNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginRight: 8,
-  },
-  exerciseName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  setDetails: {
-    fontSize: 14,
-    color: '#666',
   },
   footer: {
     padding: 16,
@@ -495,23 +450,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  bottomSheetBackground: {
-    backgroundColor: '#fff',
-  },
-  bottomSheetContent: {
-    padding: 20,
-  },
-  bottomSheetTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
-  },
-  bottomSheetSubtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
   },
   inputSection: {
     backgroundColor: '#F9F9F9',
@@ -575,7 +513,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   historySection: {
-    marginBottom: 24,
+    marginTop: 24,
   },
   historyTitle: {
     fontSize: 20,
@@ -583,7 +521,7 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 12,
   },
-  bottomSheetSetCard: {
+  setCard: {
     backgroundColor: '#F2F2F7',
     borderRadius: 12,
     padding: 16,
@@ -591,5 +529,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  setNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  setDetails: {
+    fontSize: 16,
+    color: '#000',
   },
 });

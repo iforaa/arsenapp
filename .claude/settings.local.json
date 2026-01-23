@@ -24,7 +24,8 @@
       "Skill(superpowers:finishing-a-development-branch)",
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }
