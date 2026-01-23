@@ -207,6 +207,12 @@ export default function ActivityScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{config.label1}</Text>
           <View style={styles.inputRow}>
+            <TouchableOpacity
+              style={styles.adjustButton}
+              onPress={() => setValue1(adjustValue(value1, config.step1, 'down'))}
+            >
+              <Text style={styles.adjustButtonText}>−</Text>
+            </TouchableOpacity>
             <TextInput
               style={styles.input}
               value={value1}
@@ -215,6 +221,12 @@ export default function ActivityScreen() {
               placeholder={config.placeholder1}
               autoFocus
             />
+            <TouchableOpacity
+              style={styles.adjustButton}
+              onPress={() => setValue1(adjustValue(value1, config.step1, 'up'))}
+            >
+              <Text style={styles.adjustButtonText}>+</Text>
+            </TouchableOpacity>
             {config.unit1 && <Text style={styles.unit}>{config.unit1}</Text>}
           </View>
         </View>
@@ -223,6 +235,12 @@ export default function ActivityScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{config.label2}</Text>
             <View style={styles.inputRow}>
+              <TouchableOpacity
+                style={styles.adjustButton}
+                onPress={() => setValue2(adjustValue(value2, config.step2!, 'down'))}
+              >
+                <Text style={styles.adjustButtonText}>−</Text>
+              </TouchableOpacity>
               <TextInput
                 style={styles.input}
                 value={value2}
@@ -230,6 +248,12 @@ export default function ActivityScreen() {
                 keyboardType="number-pad"
                 placeholder={config.placeholder2 || '0'}
               />
+              <TouchableOpacity
+                style={styles.adjustButton}
+                onPress={() => setValue2(adjustValue(value2, config.step2!, 'up'))}
+              >
+                <Text style={styles.adjustButtonText}>+</Text>
+              </TouchableOpacity>
               {config.unit2 && <Text style={styles.unit}>{config.unit2}</Text>}
             </View>
           </View>
