@@ -151,6 +151,39 @@ export async function deleteSet(id: number): Promise<void> {
 }
 
 /**
+ * Gets the most recent set for a specific exercise
+ * @param exerciseId - The exercise ID
+ * @returns The most recent set or null if no sets exist
+ */
+export async function getLastSetForExercise(exerciseId: number): Promise<Set | null> {
+  const db = await getDatabase();
+  const result = await db.getFirstAsync<{
+    id: number;
+    workout_id: number;
+    exercise_id: number;
+    weight: number;
+    reps: number;
+    order_in_workout: number;
+    timestamp: string;
+  }>(
+    'SELECT * FROM sets WHERE exercise_id = ? ORDER BY timestamp DESC LIMIT 1',
+    [exerciseId]
+  );
+
+  if (!result) return null;
+
+  return {
+    id: result.id,
+    workout_id: result.workout_id,
+    exercise_id: result.exercise_id,
+    weight: result.weight,
+    reps: result.reps,
+    order_in_workout: result.order_in_workout,
+    timestamp: result.timestamp,
+  };
+}
+
+/**
  * Gets all sets for a workout with exercise information joined
  * @param workoutId - The workout ID
  * @returns Array of sets with exercise information

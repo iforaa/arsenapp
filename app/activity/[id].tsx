@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useWorkoutStore } from '../../lib/store';
-import { getAllExercises, addSet, createWorkout } from '../../db/queries';
+import { getAllExercises, addSet, createWorkout, getLastSetForExercise } from '../../db/queries';
 import type { Exercise } from '../../types';
 
 export default function ActivityScreen() {
@@ -23,6 +23,15 @@ export default function ActivityScreen() {
     const found = exercises.find(e => e.id === parseInt(id as string));
     if (found) {
       setExercise(found);
+
+      // Load last set for this exercise to pre-fill inputs
+      const lastSet = await getLastSetForExercise(found.id);
+      if (lastSet) {
+        setValue1(lastSet.weight.toString());
+        if (found.tracking_type === 'weight_reps') {
+          setValue2(lastSet.reps.toString());
+        }
+      }
     }
   }
 
