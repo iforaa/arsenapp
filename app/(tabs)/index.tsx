@@ -203,7 +203,7 @@ export default function WorkoutScreen() {
       return;
     }
 
-    const config = getInputConfig(selectedExercise.tracking_type);
+    const config = getInputConfig(selectedExercise.tracking_type, selectedExercise);
 
     if (!value1) {
       Alert.alert('Error', `Please enter ${config.label1.toLowerCase()}`);
@@ -220,7 +220,7 @@ export default function WorkoutScreen() {
       const weight = parseFloat(value1);
       const reps = needsValue2 ? parseInt(value2) : 0;
 
-      const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps);
+      const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps, activeSeries);
 
       addSetToWorkout({
         id: setId,
@@ -229,6 +229,7 @@ export default function WorkoutScreen() {
         weight: weight,
         reps: reps,
         order_in_workout: currentWorkoutSets.length + 1,
+        series_id: activeSeries,
         timestamp: new Date().toISOString(),
         exercise: selectedExercise,
       });
