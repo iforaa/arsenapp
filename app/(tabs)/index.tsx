@@ -197,6 +197,15 @@ export default function WorkoutScreen() {
     return Math.max(0, newValue).toString();
   }
 
+  function handleStartSeries() {
+    const seriesId = `series_${Date.now()}`;
+    setActiveSeries(seriesId);
+  }
+
+  function handleEndSeries() {
+    setActiveSeries(null);
+  }
+
   async function handleLogSet() {
     if (!currentWorkout || !selectedExercise) {
       Alert.alert('Error', 'No active workout');
