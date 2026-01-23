@@ -353,6 +353,11 @@ export default function WorkoutScreen() {
         {/* Selected Exercise Form */}
         {selectedExercise && config && (
           <View style={styles.selectedSection}>
+            {activeSeries && (
+              <View style={styles.seriesBadge}>
+                <Text style={styles.seriesBadgeText}>🔗 Series Active</Text>
+              </View>
+            )}
             <Text style={styles.selectedTitle}>{selectedExercise.name}</Text>
             <Text style={styles.selectedSubtitle}>{selectedExercise.muscle_groups.join(', ')}</Text>
 
@@ -527,6 +532,19 @@ const styles = StyleSheet.create({
   },
   selectedSection: {
     marginBottom: 24,
+  },
+  seriesBadge: {
+    backgroundColor: '#FF9500',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  seriesBadgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   selectedTitle: {
     fontSize: 24,
