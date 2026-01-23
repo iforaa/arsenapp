@@ -19,6 +19,7 @@ export async function initDatabase(): Promise<void> {
       name TEXT NOT NULL,
       muscle_groups TEXT NOT NULL,
       equipment TEXT NOT NULL,
+      tracking_type TEXT NOT NULL DEFAULT 'weight_reps',
       is_custom INTEGER NOT NULL DEFAULT 0,
       media_paths TEXT NOT NULL DEFAULT '[]',
       notes TEXT NOT NULL DEFAULT '',

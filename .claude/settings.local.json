@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Skill(superpowers:using-git-worktrees)",
+      "Bash(git check-ignore:*)",
+      "Bash(echo $?)",
+      "Bash(git worktree:*)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Bash(npx create-expo-app@latest . --template blank-typescript)",
+      "Bash(npx expo install:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout 15 npx expo start:*)",
+      "Bash(pkill:*)",
+      "Skill(superpowers:requesting-code-review)",
+      "Bash(npx expo start:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(ls:*)",
+      "Bash(tree:*)",
+      "Bash(test:*)",
+      "Skill(superpowers:finishing-a-development-branch)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git branch:*)"
+    ]
+  }
+}

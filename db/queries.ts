@@ -170,6 +170,7 @@ export async function getWorkoutSets(
     exercise_name: string;
     muscle_groups: string;
     equipment: string;
+    tracking_type: string;
     is_custom: number;
     media_paths: string;
     notes: string;
@@ -180,6 +181,7 @@ export async function getWorkoutSets(
       exercises.name as exercise_name,
       exercises.muscle_groups,
       exercises.equipment,
+      exercises.tracking_type,
       exercises.is_custom,
       exercises.media_paths,
       exercises.notes,
@@ -204,6 +206,7 @@ export async function getWorkoutSets(
       name: row.exercise_name,
       muscle_groups: JSON.parse(row.muscle_groups) as MuscleGroup[],
       equipment: row.equipment as Equipment,
+      tracking_type: row.tracking_type as any,
       is_custom: row.is_custom === 1,
       media_paths: JSON.parse(row.media_paths) as string[],
       notes: row.notes,
@@ -227,6 +230,7 @@ export async function getAllExercises(): Promise<Exercise[]> {
     name: string;
     muscle_groups: string;
     equipment: string;
+    tracking_type: string;
     is_custom: number;
     media_paths: string;
     notes: string;
@@ -238,6 +242,7 @@ export async function getAllExercises(): Promise<Exercise[]> {
     name: row.name,
     muscle_groups: JSON.parse(row.muscle_groups) as MuscleGroup[],
     equipment: row.equipment as Equipment,
+    tracking_type: row.tracking_type as any,
     is_custom: row.is_custom === 1,
     media_paths: JSON.parse(row.media_paths) as string[],
     notes: row.notes,
@@ -257,6 +262,7 @@ export async function searchExercises(query: string): Promise<Exercise[]> {
     name: string;
     muscle_groups: string;
     equipment: string;
+    tracking_type: string;
     is_custom: number;
     media_paths: string;
     notes: string;
@@ -268,6 +274,7 @@ export async function searchExercises(query: string): Promise<Exercise[]> {
     name: row.name,
     muscle_groups: JSON.parse(row.muscle_groups) as MuscleGroup[],
     equipment: row.equipment as Equipment,
+    tracking_type: row.tracking_type as any,
     is_custom: row.is_custom === 1,
     media_paths: JSON.parse(row.media_paths) as string[],
     notes: row.notes,
@@ -311,6 +318,7 @@ export async function getRecentExercises(limit: number = 10): Promise<Exercise[]
     name: string;
     muscle_groups: string;
     equipment: string;
+    tracking_type: string;
     is_custom: number;
     media_paths: string;
     notes: string;
@@ -329,6 +337,7 @@ export async function getRecentExercises(limit: number = 10): Promise<Exercise[]
     name: row.name,
     muscle_groups: JSON.parse(row.muscle_groups) as MuscleGroup[],
     equipment: row.equipment as Equipment,
+    tracking_type: row.tracking_type as any,
     is_custom: row.is_custom === 1,
     media_paths: JSON.parse(row.media_paths) as string[],
     notes: row.notes,

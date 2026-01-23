@@ -1,8 +1,11 @@
+export type TrackingType = 'weight_reps' | 'time' | 'calories' | 'distance' | 'reps_only';
+
 export interface Exercise {
   id: number;
   name: string;
   muscle_groups: MuscleGroup[]; // JSON array
   equipment: Equipment;
+  tracking_type: TrackingType;
   is_custom: boolean;
   media_paths: string[]; // JSON array
   notes: string;
