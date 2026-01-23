@@ -56,56 +56,74 @@ export default function ActivityScreen() {
           label1: 'Weight',
           unit1: 'kg',
           placeholder1: '0',
+          step1: 2.5,
           label2: 'Reps',
           unit2: '',
-          placeholder2: '0'
+          placeholder2: '0',
+          step2: 1
         };
       case 'time':
         return {
           label1: 'Duration',
           unit1: 'seconds',
           placeholder1: '0',
+          step1: 5,
           label2: null,
           unit2: null,
-          placeholder2: null
+          placeholder2: null,
+          step2: null
         };
       case 'calories':
         return {
           label1: 'Calories',
           unit1: 'kcal',
           placeholder1: '0',
+          step1: 10,
           label2: null,
           unit2: null,
-          placeholder2: null
+          placeholder2: null,
+          step2: null
         };
       case 'distance':
         return {
           label1: 'Distance',
           unit1: 'km',
           placeholder1: '0',
+          step1: 0.5,
           label2: null,
           unit2: null,
-          placeholder2: null
+          placeholder2: null,
+          step2: null
         };
       case 'reps_only':
         return {
           label1: 'Reps',
           unit1: '',
           placeholder1: '0',
+          step1: 1,
           label2: null,
           unit2: null,
-          placeholder2: null
+          placeholder2: null,
+          step2: null
         };
       default:
         return {
           label1: 'Value',
           unit1: '',
           placeholder1: '0',
+          step1: 1,
           label2: 'Reps',
           unit2: '',
-          placeholder2: '0'
+          placeholder2: '0',
+          step2: 1
         };
     }
+  }
+
+  function adjustValue(currentValue: string, step: number, direction: 'up' | 'down') {
+    const current = parseFloat(currentValue) || 0;
+    const newValue = direction === 'up' ? current + step : current - step;
+    return Math.max(0, newValue).toString();
   }
 
   function getSetDisplay(weight: number, reps: number, trackingType: string) {
@@ -270,6 +288,20 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  adjustButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#007AFF',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  adjustButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '600',
   },
   input: {
     flex: 1,
@@ -280,6 +312,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 24,
     fontWeight: '600',
+    textAlign: 'center',
   },
   unit: {
     fontSize: 18,
