@@ -400,59 +400,53 @@ export default function WorkoutScreen() {
 
             <View style={styles.inputSection}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>{config.label1}</Text>
-                <View style={styles.inputRow}>
-                  <TextInput
-                    style={styles.input}
-                    value={value1}
-                    onChangeText={setValue1}
-                    keyboardType="decimal-pad"
-                    placeholder={config.placeholder1}
-                  />
-                  <View style={styles.adjustButtons}>
-                    <TouchableOpacity
-                      style={styles.adjustButton}
-                      onPress={() => setValue1(adjustValue(value1, config.step1, 'down'))}
-                    >
-                      <Text style={styles.adjustButtonText}>−</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.adjustButton}
-                      onPress={() => setValue1(adjustValue(value1, config.step1, 'up'))}
-                    >
-                      <Text style={styles.adjustButtonText}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                  {config.unit1 && <Text style={styles.unit}>{config.unit1}</Text>}
+                <Text style={styles.label}>{config.label1}{config.unit1 ? ` (${config.unit1})` : ''}</Text>
+                <TextInput
+                  style={styles.input}
+                  value={value1}
+                  onChangeText={setValue1}
+                  keyboardType="decimal-pad"
+                  placeholder={config.placeholder1}
+                />
+                <View style={styles.adjustButtons}>
+                  <TouchableOpacity
+                    style={styles.adjustButton}
+                    onPress={() => setValue1(adjustValue(value1, config.step1, 'down'))}
+                  >
+                    <Text style={styles.adjustButtonText}>−</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.adjustButton}
+                    onPress={() => setValue1(adjustValue(value1, config.step1, 'up'))}
+                  >
+                    <Text style={styles.adjustButtonText}>+</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
               {config.label2 && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>{config.label2}</Text>
-                  <View style={styles.inputRow}>
-                    <TextInput
-                      style={styles.input}
-                      value={value2}
-                      onChangeText={setValue2}
-                      keyboardType="number-pad"
-                      placeholder={config.placeholder2 || '0'}
-                    />
-                    <View style={styles.adjustButtons}>
-                      <TouchableOpacity
-                        style={styles.adjustButton}
-                        onPress={() => setValue2(adjustValue(value2, config.step2!, 'down'))}
-                      >
-                        <Text style={styles.adjustButtonText}>−</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.adjustButton}
-                        onPress={() => setValue2(adjustValue(value2, config.step2!, 'up'))}
-                      >
-                        <Text style={styles.adjustButtonText}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                    {config.unit2 && <Text style={styles.unit}>{config.unit2}</Text>}
+                  <Text style={styles.label}>{config.label2}{config.unit2 ? ` (${config.unit2})` : ''}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={value2}
+                    onChangeText={setValue2}
+                    keyboardType="number-pad"
+                    placeholder={config.placeholder2 || '0'}
+                  />
+                  <View style={styles.adjustButtons}>
+                    <TouchableOpacity
+                      style={styles.adjustButton}
+                      onPress={() => setValue2(adjustValue(value2, config.step2!, 'down'))}
+                    >
+                      <Text style={styles.adjustButtonText}>−</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.adjustButton}
+                      onPress={() => setValue2(adjustValue(value2, config.step2!, 'up'))}
+                    >
+                      <Text style={styles.adjustButtonText}>+</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
@@ -647,20 +641,16 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 8,
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   adjustButtons: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 12,
+    marginTop: 12,
   },
   adjustButton: {
-    width: 40,
-    height: 40,
+    flex: 1,
+    height: 44,
     backgroundColor: '#007AFF',
-    borderRadius: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -679,12 +669,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  unit: {
-    fontSize: 18,
-    color: '#666',
-    marginLeft: 12,
-    fontWeight: '500',
   },
   logButton: {
     backgroundColor: '#007AFF',
