@@ -23,8 +23,7 @@
       "package": "com.arsenapp.fitnesstracker"
     },
     "plugins": [
-      "expo-router",
-      "expo-sqlite"
+      "expo-router"
     ],
     "scheme": "fitness-tracker"
   }
