@@ -47,11 +47,21 @@ export async function initDatabase(): Promise<void> {
       weight REAL NOT NULL,
       reps INTEGER NOT NULL,
       order_in_workout INTEGER NOT NULL,
+      series_id TEXT,
       timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (workout_id) REFERENCES workouts(id) ON DELETE CASCADE,
       FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE RESTRICT
     );
   `);
+
+  // Migration: Add series_id column if it doesn't exist
+  try {
+    await database.execAsync(`
+      ALTER TABLE sets ADD COLUMN series_id TEXT;
+    `);
+  } catch (e) {
+    // Column already exists
+  }
 
   // Create indexes for better query performance
   await database.execAsync(`

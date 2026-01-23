@@ -115,13 +115,15 @@ export async function getRecentWorkouts(limit: number = 10): Promise<Workout[]> 
  * @param exerciseId - The exercise ID
  * @param weight - Weight used (in kg)
  * @param reps - Number of repetitions
+ * @param seriesId - Optional series ID for grouping sets
  * @returns The ID of the newly created set
  */
 export async function addSet(
   workoutId: number,
   exerciseId: number,
   weight: number,
-  reps: number
+  reps: number,
+  seriesId?: string | null
 ): Promise<number> {
   const db = await getDatabase();
 
@@ -134,8 +136,8 @@ export async function addSet(
   const nextOrder = (maxOrderResult?.max_order ?? -1) + 1;
 
   const result = await db.runAsync(
-    'INSERT INTO sets (workout_id, exercise_id, weight, reps, order_in_workout, timestamp) VALUES (?, ?, ?, ?, ?, datetime("now"))',
-    [workoutId, exerciseId, weight, reps, nextOrder]
+    'INSERT INTO sets (workout_id, exercise_id, weight, reps, order_in_workout, series_id, timestamp) VALUES (?, ?, ?, ?, ?, ?, datetime("now"))',
+    [workoutId, exerciseId, weight, reps, nextOrder, seriesId]
   );
 
   return result.lastInsertRowId;
@@ -199,6 +201,7 @@ export async function getWorkoutSets(
     weight: number;
     reps: number;
     order_in_workout: number;
+    series_id: string | null;
     timestamp: string;
     exercise_name: string;
     muscle_groups: string;
@@ -233,6 +236,7 @@ export async function getWorkoutSets(
     weight: row.weight,
     reps: row.reps,
     order_in_workout: row.order_in_workout,
+    series_id: row.series_id,
     timestamp: row.timestamp,
     exercise: {
       id: row.exercise_id,

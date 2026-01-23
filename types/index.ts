@@ -27,6 +27,7 @@ export interface Set {
   weight: number;
   reps: number;
   order_in_workout: number;
+  series_id?: string | null;
   timestamp: string; // ISO timestamp
 }
 

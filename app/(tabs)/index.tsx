@@ -14,6 +14,7 @@ export default function WorkoutScreen() {
   const [value1, setValue1] = useState('');
   const [value2, setValue2] = useState('');
   const [cardioTrackingMode, setCardioTrackingMode] = useState<'distance' | 'calories' | 'time'>('distance');
+  const [activeSeries, setActiveSeries] = useState<string | null>(null);
 
   // Load exercises and auto-start workout
   useEffect(() => {
@@ -457,9 +458,18 @@ export default function WorkoutScreen() {
 
       </ScrollView>
 
-      {/* Finish Workout Button */}
+      {/* Footer Buttons */}
       {currentWorkoutSets.length > 0 && (
         <View style={styles.footer}>
+          {activeSeries ? (
+            <TouchableOpacity style={styles.seriesButton} onPress={handleEndSeries}>
+              <Text style={styles.seriesButtonText}>End Series</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.seriesButton} onPress={handleStartSeries}>
+              <Text style={styles.seriesButtonText}>Start Series</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.finishButton} onPress={handleFinishWorkout}>
             <Text style={styles.finishButtonText}>Finish Workout</Text>
           </TouchableOpacity>
@@ -560,12 +570,27 @@ const styles = StyleSheet.create({
     color: '#E3F2FD',
   },
   footer: {
+    flexDirection: 'row',
     padding: 16,
+    gap: 8,
     borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fff',
   },
+  seriesButton: {
+    flex: 1,
+    backgroundColor: '#FF9500',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  seriesButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   finishButton: {
+    flex: 1,
     backgroundColor: '#34C759',
     paddingVertical: 14,
     borderRadius: 8,

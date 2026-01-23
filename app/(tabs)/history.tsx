@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { getRecentWorkouts, getWorkoutSets } from '../../db/queries';
 import type { Workout } from '../../types';
 
 export default function HistoryScreen() {
+  const router = useRouter();
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,9 +61,8 @@ export default function HistoryScreen() {
     });
   }
 
-  async function handleWorkoutPress(workout: Workout) {
-    // Future: Navigate to workout detail screen
-    console.log('Workout pressed:', workout.id);
+  function handleWorkoutPress(workout: Workout) {
+    router.push(`/workout/${workout.id}`);
   }
 
   if (loading) {
