@@ -6,8 +6,12 @@ import { seedDefaultExercises } from '../db/schema';
 export default function RootLayout() {
   useEffect(() => {
     async function setupDatabase() {
-      await initDatabase();
-      await seedDefaultExercises();
+      try {
+        await initDatabase();
+        await seedDefaultExercises();
+      } catch (error) {
+        console.error('Database setup failed:', error);
+      }
     }
 
     setupDatabase();

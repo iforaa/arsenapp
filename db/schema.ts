@@ -36,5 +36,5 @@ export async function seedDefaultExercises(): Promise<void> {
     );
   }
 
-  console.log(`Seeded ${defaultExercises.length} default exercises`);
+  console.log('Seeded 10 default exercises');
 }
