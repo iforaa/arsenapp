@@ -1,8 +1,8 @@
 export interface Exercise {
   id: number;
   name: string;
-  muscle_groups: string[]; // JSON array
-  equipment: string;
+  muscle_groups: MuscleGroup[]; // JSON array
+  equipment: Equipment;
   is_custom: boolean;
   media_paths: string[]; // JSON array
   notes: string;
