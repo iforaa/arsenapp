@@ -166,7 +166,7 @@ export default function WorkoutScreen() {
     return Math.max(0, newValue).toString();
   }
 
-  async function handleLogSet(keepValues: boolean = false) {
+  async function handleLogSet() {
     if (!currentWorkout || !selectedExercise) {
       Alert.alert('Error', 'No active workout');
       return;
@@ -202,10 +202,7 @@ export default function WorkoutScreen() {
         exercise: selectedExercise,
       });
 
-      if (!keepValues) {
-        setValue1('');
-        setValue2('');
-      }
+      // Keep values for easy repeat logging
     } catch (error) {
       console.error('Failed to add set:', error);
       Alert.alert('Error', 'Failed to log');
@@ -370,23 +367,9 @@ export default function WorkoutScreen() {
                 </View>
               )}
 
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.logButton, styles.logButtonPrimary]}
-                  onPress={() => handleLogSet(false)}
-                >
-                  <Text style={styles.logButtonText}>Log Set</Text>
-                </TouchableOpacity>
-
-                {todaysSetsForExercise.length > 0 && (
-                  <TouchableOpacity
-                    style={[styles.logButton, styles.logButtonSecondary]}
-                    onPress={() => handleLogSet(true)}
-                  >
-                    <Text style={styles.logButtonTextSecondary}>Log Another</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <TouchableOpacity style={styles.logButton} onPress={handleLogSet}>
+                <Text style={styles.logButtonText}>Log Set</Text>
+              </TouchableOpacity>
             </View>
 
             {todaysSetsForExercise.length > 0 && (
@@ -552,31 +535,14 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontWeight: '500',
   },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
   logButton: {
-    flex: 1,
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  logButtonPrimary: {
-    backgroundColor: '#007AFF',
-  },
-  logButtonSecondary: {
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#007AFF',
-  },
   logButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  logButtonTextSecondary: {
-    color: '#007AFF',
     fontSize: 18,
     fontWeight: '600',
   },
