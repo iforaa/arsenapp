@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,45 @@ import { useWorkoutHistory } from '../../lib/hooks/useWorkoutHistory';
 import { getAllExercises, getRecentExercises, addSet, getLastSetForExercise } from '../../db/queries';
 import { Card, Badge, Button, NumberInput, WorkoutCard } from '../../components';
 import { colors, spacing, typography, borderRadius } from '../../lib/theme';
-import type { Exercise } from '../../types';
+import type { Exercise, Set } from '../../types';
+
+// Map exercise names to translation keys
+const exerciseTranslationKeys: Record<string, string> = {
+  'Bench Press': 'exercise.benchPress',
+  'Squat': 'exercise.squat',
+  'Deadlift': 'exercise.deadlift',
+  'Overhead Press': 'exercise.overheadPress',
+  'Barbell Row': 'exercise.barbellRow',
+  'Dumbbell Curl': 'exercise.dumbbellCurl',
+  'Tricep Pushdown': 'exercise.tricepPushdown',
+  'Lat Pulldown': 'exercise.latPulldown',
+  'Leg Press': 'exercise.legPress',
+  'Pull Up': 'exercise.pullUp',
+  'Push Up': 'exercise.pushUp',
+  'Dips': 'exercise.dips',
+  'Plank': 'exercise.plank',
+  'Wall Sit': 'exercise.wallSit',
+  'Dead Hang': 'exercise.deadHang',
+  'Stationary Bike': 'exercise.stationaryBike',
+  'Treadmill': 'exercise.treadmill',
+  'Rowing Machine': 'exercise.rowingMachine',
+  'Elliptical': 'exercise.elliptical',
+  'Running': 'exercise.running',
+  'Cycling': 'exercise.cycling',
+  'Swimming': 'exercise.swimming',
+};
+
+const muscleTranslationKeys: Record<string, string> = {
+  'chest': 'muscle.chest',
+  'back': 'muscle.back',
+  'legs': 'muscle.legs',
+  'shoulders': 'muscle.shoulders',
+  'biceps': 'muscle.biceps',
+  'triceps': 'muscle.triceps',
+  'core': 'muscle.core',
+  'glutes': 'muscle.glutes',
+  'cardio': 'muscle.cardio',
+};
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -37,6 +75,17 @@ export default function HistoryScreen() {
   const [value1, setValue1] = useState('');
   const [value2, setValue2] = useState('');
   const [cardioTrackingMode, setCardioTrackingMode] = useState<'distance' | 'calories' | 'time'>('distance');
+
+  // Helper functions for translations
+  const getExerciseName = (exercise: Exercise) => {
+    const key = exerciseTranslationKeys[exercise.name];
+    return key ? t(key) : exercise.name;
+  };
+
+  const getMuscleGroupName = (muscle: string) => {
+    const key = muscleTranslationKeys[muscle];
+    return key ? t(key) : muscle;
+  };
 
   // Load exercises on mount
   useEffect(() => {
@@ -85,11 +134,11 @@ export default function HistoryScreen() {
     }
   }
 
-  async function logCurrentSet(): Promise<boolean> {
-    if (!currentWorkout || !selectedExercise || !value1) return false;
+  async function handleAddExercise() {
+    if (!currentWorkout || !selectedExercise || !value1) return;
 
     const needsValue2 = selectedExercise.tracking_type === 'weight_reps';
-    if (needsValue2 && !value2) return false;
+    if (needsValue2 && !value2) return;
 
     try {
       const weight = parseFloat(value1);
@@ -107,15 +156,18 @@ export default function HistoryScreen() {
         timestamp: new Date().toISOString(),
         exercise: selectedExercise,
       });
-      return true;
+
+      // Clear selection for next exercise
+      setSelectedExercise(null);
+      setValue1('');
+      setValue2('');
     } catch (error) {
-      console.error('Failed to add set:', error);
-      return false;
+      console.error('Failed to add exercise:', error);
     }
   }
 
   function handleFinish() {
-    finishWorkout(selectedExercise && value1 ? logCurrentSet : undefined);
+    finishWorkout();
     setSelectedExercise(null);
   }
 
@@ -125,14 +177,18 @@ export default function HistoryScreen() {
   }
 
   function handleNextSeries() {
-    nextSeries(selectedExercise && value1 ? logCurrentSet : undefined);
+    nextSeries();
+    setSelectedExercise(null);
+    setValue1('');
+    setValue2('');
   }
+
+  // Get sets in current series
+  const currentSeriesSets = currentWorkoutSets.filter((s) => s.series_id === activeSeries);
 
   const config = selectedExercise ? getInputConfig(selectedExercise, cardioTrackingMode, t) : null;
   const isCardio = checkIsCardio(selectedExercise);
-  const todaysSets = selectedExercise
-    ? currentWorkoutSets.filter((s) => s.exercise_id === selectedExercise.id)
-    : [];
+  const canAdd = selectedExercise && value1 && (selectedExercise.tracking_type !== 'weight_reps' || value2);
 
   const midpoint = Math.ceil(sortedExercises.length / 2);
   const row1Exercises = sortedExercises.slice(0, midpoint);
@@ -181,6 +237,7 @@ export default function HistoryScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Text style={styles.backButtonText}>← {t('back')}</Text>
         </TouchableOpacity>
+        <Badge variant="series" label={`${t('series')} ${seriesCount || 1}`} />
       </View>
 
       {/* Exercise cards */}
@@ -190,6 +247,8 @@ export default function HistoryScreen() {
             <ExerciseCard
               key={ex.id}
               exercise={ex}
+              name={getExerciseName(ex)}
+              muscle={getMuscleGroupName(ex.muscle_groups[0])}
               isRecent={recentExerciseIds.includes(ex.id)}
               isSelected={selectedExercise?.id === ex.id}
               onPress={() => handleActivityTap(ex)}
@@ -201,6 +260,8 @@ export default function HistoryScreen() {
             <ExerciseCard
               key={ex.id}
               exercise={ex}
+              name={getExerciseName(ex)}
+              muscle={getMuscleGroupName(ex.muscle_groups[0])}
               isRecent={recentExerciseIds.includes(ex.id)}
               isSelected={selectedExercise?.id === ex.id}
               onPress={() => handleActivityTap(ex)}
@@ -213,9 +274,10 @@ export default function HistoryScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {selectedExercise && config && (
           <View style={styles.selectedSection}>
-            <Badge variant="series" label={`${t('series')} ${seriesCount || 1}`} />
-            <Text style={styles.selectedTitle}>{selectedExercise.name}</Text>
-            <Text style={styles.selectedSubtitle}>{selectedExercise.muscle_groups.join(', ')}</Text>
+            <Text style={styles.selectedTitle}>{getExerciseName(selectedExercise)}</Text>
+            <Text style={styles.selectedSubtitle}>
+              {selectedExercise.muscle_groups.map(getMuscleGroupName).join(', ')}
+            </Text>
 
             {isCardio && (
               <View style={styles.modeSelector}>
@@ -252,19 +314,34 @@ export default function HistoryScreen() {
               )}
             </Card>
 
-            {todaysSets.length > 0 && (
-              <View style={styles.historySection}>
-                <Text style={styles.historyTitle}>{t('today')} ({todaysSets.length})</Text>
-                {todaysSets.map((set, index) => (
-                  <Card key={set.id} style={styles.setCard}>
-                    <Text style={styles.setNumber}>#{index + 1}</Text>
-                    <Text style={styles.setDetails}>
-                      {formatSetDisplay(set.weight, set.reps, selectedExercise.tracking_type)}
-                    </Text>
-                  </Card>
-                ))}
-              </View>
-            )}
+            <Button
+              title={t('add')}
+              onPress={handleAddExercise}
+              variant="success"
+              size="lg"
+              disabled={!canAdd}
+              style={styles.addButton}
+            />
+          </View>
+        )}
+
+        {/* Current series exercises */}
+        {currentSeriesSets.length > 0 && (
+          <View style={styles.currentSeriesSection}>
+            <Text style={styles.sectionTitle}>{t('currentSeries')}</Text>
+            {currentSeriesSets.map((set, index) => (
+              <Card key={set.id} style={styles.setCard}>
+                <View style={styles.setInfo}>
+                  <Text style={styles.setNumber}>#{index + 1}</Text>
+                  <Text style={styles.setExerciseName}>
+                    {set.exercise ? getExerciseName(set.exercise) : ''}
+                  </Text>
+                </View>
+                <Text style={styles.setDetails}>
+                  {set.exercise ? formatSetDisplay(set.weight, set.reps, set.exercise.tracking_type) : ''}
+                </Text>
+              </Card>
+            ))}
           </View>
         )}
       </ScrollView>
@@ -282,11 +359,15 @@ export default function HistoryScreen() {
 
 function ExerciseCard({
   exercise,
+  name,
+  muscle,
   isRecent,
   isSelected,
   onPress,
 }: {
   exercise: Exercise;
+  name: string;
+  muscle: string;
   isRecent: boolean;
   isSelected: boolean;
   onPress: () => void;
@@ -297,10 +378,10 @@ function ExerciseCard({
       onPress={onPress}
     >
       <Text style={[styles.activityName, isSelected && styles.activityNameSelected]} numberOfLines={2}>
-        {exercise.name}
+        {name}
       </Text>
       <Text style={[styles.activityMuscle, isSelected && styles.activityMuscleSelected]} numberOfLines={1}>
-        {exercise.muscle_groups[0]}
+        {muscle}
       </Text>
     </TouchableOpacity>
   );
@@ -340,15 +421,15 @@ function getInputConfig(exercise: Exercise, cardioMode: string, t: (key: string)
 function formatSetDisplay(weight: number, reps: number, trackingType: string): string {
   switch (trackingType) {
     case 'weight_reps':
-      return `${weight}kg × ${reps} reps`;
+      return `${weight}kg × ${reps}`;
     case 'time':
-      return `${Math.floor(weight / 60)}:${(weight % 60).toString().padStart(2, '0')} min`;
+      return `${Math.floor(weight / 60)}:${(weight % 60).toString().padStart(2, '0')}`;
     case 'calories':
       return `${weight} kcal`;
     case 'distance':
       return `${weight} km`;
     case 'reps_only':
-      return `${weight} reps`;
+      return `${weight}`;
     default:
       return `${weight} × ${reps}`;
   }
@@ -405,6 +486,7 @@ const styles = StyleSheet.create({
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
@@ -466,13 +548,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   selectedSection: {
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
   },
   selectedTitle: {
     fontSize: typography.sizes.xxl,
     fontWeight: typography.weights.bold,
     color: colors.gray[900],
-    marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
   selectedSubtitle: {
@@ -505,12 +586,15 @@ const styles = StyleSheet.create({
   },
   inputCard: {
     backgroundColor: colors.gray[100],
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.lg,
   },
-  historySection: {
-    marginTop: spacing.xxl,
+  addButton: {
+    marginBottom: spacing.lg,
   },
-  historyTitle: {
+  currentSeriesSection: {
+    marginTop: spacing.md,
+  },
+  sectionTitle: {
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.semibold,
     color: colors.gray[900],
@@ -522,14 +606,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  setInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   setNumber: {
-    fontSize: typography.sizes.lg,
+    fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
     color: colors.primary,
+    marginRight: spacing.sm,
+    width: 30,
+  },
+  setExerciseName: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+    color: colors.gray[900],
+    flex: 1,
   },
   setDetails: {
     fontSize: typography.sizes.lg,
-    color: colors.gray[900],
+    fontWeight: typography.weights.semibold,
+    color: colors.gray[700],
   },
   footer: {
     flexDirection: 'row',

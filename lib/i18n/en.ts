@@ -12,6 +12,8 @@ export default {
   today: 'Today',
   noWorkoutsYet: 'No Workouts Yet',
   completeFirstWorkout: 'Complete your first workout to see it here!',
+  add: 'Add',
+  currentSeries: 'Current Series',
 
   // Input labels
   weight: 'Weight',
@@ -45,4 +47,39 @@ export default {
   // Progress screen
   progressStats: 'Progress & Stats',
   trackPRs: 'Track your PRs and volume',
+
+  // Exercise names
+  'exercise.benchPress': 'Bench Press',
+  'exercise.squat': 'Squat',
+  'exercise.deadlift': 'Deadlift',
+  'exercise.overheadPress': 'Overhead Press',
+  'exercise.barbellRow': 'Barbell Row',
+  'exercise.dumbbellCurl': 'Dumbbell Curl',
+  'exercise.tricepPushdown': 'Tricep Pushdown',
+  'exercise.latPulldown': 'Lat Pulldown',
+  'exercise.legPress': 'Leg Press',
+  'exercise.pullUp': 'Pull Up',
+  'exercise.pushUp': 'Push Up',
+  'exercise.dips': 'Dips',
+  'exercise.plank': 'Plank',
+  'exercise.wallSit': 'Wall Sit',
+  'exercise.deadHang': 'Dead Hang',
+  'exercise.stationaryBike': 'Stationary Bike',
+  'exercise.treadmill': 'Treadmill',
+  'exercise.rowingMachine': 'Rowing Machine',
+  'exercise.elliptical': 'Elliptical',
+  'exercise.running': 'Running',
+  'exercise.cycling': 'Cycling',
+  'exercise.swimming': 'Swimming',
+
+  // Muscle groups
+  'muscle.chest': 'Chest',
+  'muscle.back': 'Back',
+  'muscle.legs': 'Legs',
+  'muscle.shoulders': 'Shoulders',
+  'muscle.biceps': 'Biceps',
+  'muscle.triceps': 'Triceps',
+  'muscle.core': 'Core',
+  'muscle.glutes': 'Glutes',
+  'muscle.cardio': 'Cardio',
 };
