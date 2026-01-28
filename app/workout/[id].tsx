@@ -7,13 +7,65 @@ import { Card, Badge, Button } from '../../components';
 import { colors, spacing, typography, borderRadius } from '../../lib/theme';
 import type { Workout, Set, Exercise } from '../../types';
 
+// Map exercise names to translation keys
+const exerciseTranslationKeys: Record<string, string> = {
+  'Bench Press': 'exercise.benchPress',
+  'Squat': 'exercise.squat',
+  'Deadlift': 'exercise.deadlift',
+  'Overhead Press': 'exercise.overheadPress',
+  'Barbell Row': 'exercise.barbellRow',
+  'Dumbbell Curl': 'exercise.dumbbellCurl',
+  'Tricep Pushdown': 'exercise.tricepPushdown',
+  'Lat Pulldown': 'exercise.latPulldown',
+  'Leg Press': 'exercise.legPress',
+  'Pull Up': 'exercise.pullUp',
+  'Push Up': 'exercise.pushUp',
+  'Dips': 'exercise.dips',
+  'Plank': 'exercise.plank',
+  'Wall Sit': 'exercise.wallSit',
+  'Dead Hang': 'exercise.deadHang',
+  'Stationary Bike': 'exercise.stationaryBike',
+  'Treadmill': 'exercise.treadmill',
+  'Rowing Machine': 'exercise.rowingMachine',
+  'Elliptical': 'exercise.elliptical',
+  'Running': 'exercise.running',
+  'Cycling': 'exercise.cycling',
+  'Swimming': 'exercise.swimming',
+};
+
+const muscleTranslationKeys: Record<string, string> = {
+  'chest': 'muscle.chest',
+  'back': 'muscle.back',
+  'legs': 'muscle.legs',
+  'shoulders': 'muscle.shoulders',
+  'biceps': 'muscle.biceps',
+  'triceps': 'muscle.triceps',
+  'core': 'muscle.core',
+  'glutes': 'muscle.glutes',
+  'cardio': 'muscle.cardio',
+};
+
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [sets, setSets] = useState<(Set & { exercise: Exercise })[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Get locale for date formatting
+  const locale = i18n.language === 'ru' ? 'ru-RU' : 'en-US';
+
+  // Translation helpers
+  const getExerciseName = (exercise: Exercise) => {
+    const key = exerciseTranslationKeys[exercise.name];
+    return key ? t(key) : exercise.name;
+  };
+
+  const getMuscleGroupName = (muscle: string) => {
+    const key = muscleTranslationKeys[muscle];
+    return key ? t(key) : muscle;
+  };
 
   useEffect(() => {
     loadWorkoutDetails();
@@ -34,7 +86,7 @@ export default function WorkoutDetailScreen() {
 
   function formatDate(dateString: string) {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
@@ -44,10 +96,10 @@ export default function WorkoutDetailScreen() {
 
   function formatTime(dateString: string) {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString(locale, {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
+      hour12: locale === 'en-US',
     });
   }
 
@@ -55,7 +107,7 @@ export default function WorkoutDetailScreen() {
     const trackingType = set.exercise.tracking_type;
     switch (trackingType) {
       case 'weight_reps':
-        return `${set.weight}kg × ${set.reps} reps`;
+        return `${set.weight}kg × ${set.reps}`;
       case 'time':
         return `${Math.floor(set.weight / 60)}:${(set.weight % 60).toString().padStart(2, '0')} ${t('min')}`;
       case 'calories':
@@ -63,7 +115,7 @@ export default function WorkoutDetailScreen() {
       case 'distance':
         return `${set.weight} km`;
       case 'reps_only':
-        return `${set.weight} reps`;
+        return `${set.weight}`;
       default:
         return `${set.weight} × ${set.reps}`;
     }
@@ -140,10 +192,12 @@ export default function WorkoutDetailScreen() {
                 <Card key={set.id} style={styles.setCard}>
                   <View style={styles.setHeader}>
                     <Text style={styles.setNumber}>#{set.order_in_workout + 1}</Text>
-                    <Text style={styles.exerciseName}>{set.exercise.name}</Text>
+                    <Text style={styles.exerciseName}>{getExerciseName(set.exercise)}</Text>
                   </View>
                   <Text style={styles.setDetails}>{getSetDisplay(set)}</Text>
-                  <Text style={styles.muscleGroups}>{set.exercise.muscle_groups.join(', ')}</Text>
+                  <Text style={styles.muscleGroups}>
+                    {set.exercise.muscle_groups.map(getMuscleGroupName).join(', ')}
+                  </Text>
                 </Card>
               ))}
             </View>
