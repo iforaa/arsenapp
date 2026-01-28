@@ -1,7 +1,8 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { initDatabase, seedDefaultExercises } from '../lib/api';
+import { initDatabase } from '../db/database';
+import { seedDefaultExercises } from '../db/schema';
 import '../lib/i18n';
 import { loadSavedLanguage } from '../lib/i18n';
 

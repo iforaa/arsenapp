@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useWorkoutStore } from '../store';
-import { createWorkout, completeWorkout } from '../api';
+import { createWorkout, completeWorkout, getWorkout } from '../../db/queries';
 
 interface UseWorkoutSessionReturn {
   // State
@@ -29,10 +29,13 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
 
   const startWorkout = useCallback(async () => {
     try {
-      const workout = await createWorkout();
-      setCurrentWorkout(workout);
-      setActiveSeries(`series_${Date.now()}`);
-      setWorkoutStarted(true);
+      const workoutId = await createWorkout();
+      const workout = await getWorkout(workoutId);
+      if (workout) {
+        setCurrentWorkout(workout);
+        setActiveSeries(`series_${Date.now()}`);
+        setWorkoutStarted(true);
+      }
     } catch (error) {
       console.error('Failed to start workout:', error);
     }

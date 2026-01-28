@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useWorkoutStore } from '../../lib/store';
 import { useWorkoutSession } from '../../lib/hooks/useWorkoutSession';
 import { useWorkoutHistory } from '../../lib/hooks/useWorkoutHistory';
-import { getAllExercises, getRecentExercises, addSet, getLastSetForExercise } from '../../lib/api';
+import { getAllExercises, getRecentExercises, addSet, getLastSetForExercise } from '../../db/queries';
 import { Card, Badge, Button, NumberInput, WorkoutCard } from '../../components';
 import { colors, spacing, typography, borderRadius } from '../../lib/theme';
 import type { Exercise } from '../../types';

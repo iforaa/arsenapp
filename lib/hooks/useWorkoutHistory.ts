@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getRecentWorkouts } from '../api';
+import { getRecentWorkouts } from '../../db/queries';
 import type { Workout } from '../../types';
 
 interface UseWorkoutHistoryReturn {

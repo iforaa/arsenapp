@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { getWorkout, getWorkoutSets, deleteWorkout } from '../../lib/api';
+import { getWorkout, getWorkoutSets, deleteWorkout } from '../../db/queries';
 import { Card, Badge, Button } from '../../components';
 import { colors, spacing, typography, borderRadius } from '../../lib/theme';
 import type { Workout, Set, Exercise } from '../../types';
