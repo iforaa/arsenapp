@@ -82,15 +82,26 @@ export async function completeWorkout(id: number, durationMinutes: number): Prom
 }
 
 /**
- * Gets recent completed workouts
+ * Deletes a workout and all its sets
+ * @param id - The workout ID
+ */
+export async function deleteWorkout(id: number): Promise<void> {
+  const db = getDatabase();
+  // Delete sets first (foreign key constraint)
+  await db`DELETE FROM sets WHERE workout_id = ${id}`;
+  // Then delete the workout
+  await db`DELETE FROM workouts WHERE id = ${id}`;
+}
+
+/**
+ * Gets recent workouts (both completed and in-progress)
  * @param limit - Maximum number of workouts to return (default: 10)
- * @returns Array of recent completed workouts
+ * @returns Array of recent workouts
  */
 export async function getRecentWorkouts(limit: number = 10): Promise<Workout[]> {
   const db = getDatabase();
   const results = await db`
     SELECT * FROM workouts
-    WHERE completed = true
     ORDER BY date DESC
     LIMIT ${limit}
   `;
