@@ -1,21 +1,23 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { initDatabase } from '../db/database';
-import { seedDefaultExercises } from '../db/schema';
+import { initDatabase, seedDefaultExercises } from '../lib/api';
+import '../lib/i18n';
+import { loadSavedLanguage } from '../lib/i18n';
 
 export default function RootLayout() {
   useEffect(() => {
-    async function setupDatabase() {
+    async function setup() {
       try {
         await initDatabase();
         await seedDefaultExercises();
+        await loadSavedLanguage();
       } catch (error) {
-        console.error('Database setup failed:', error);
+        console.error('Setup failed:', error);
       }
     }
 
-    setupDatabase();
+    setup();
   }, []);
 
   return (

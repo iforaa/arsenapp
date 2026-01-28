@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
-import { getWorkout, getWorkoutSets } from '../../db/queries';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { getWorkout, getWorkoutSets, deleteWorkout } from '../../lib/api';
+import { Card, Badge, Button } from '../../components';
+import { colors, spacing, typography, borderRadius } from '../../lib/theme';
 import type { Workout, Set, Exercise } from '../../types';
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
+  const { t } = useTranslation();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [sets, setSets] = useState<(Set & { exercise: Exercise })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +23,6 @@ export default function WorkoutDetailScreen() {
     try {
       const workoutData = await getWorkout(parseInt(id as string));
       const setsData = await getWorkoutSets(parseInt(id as string));
-
       setWorkout(workoutData);
       setSets(setsData);
     } catch (error) {
@@ -53,7 +57,7 @@ export default function WorkoutDetailScreen() {
       case 'weight_reps':
         return `${set.weight}kg × ${set.reps} reps`;
       case 'time':
-        return `${Math.floor(set.weight / 60)}:${(set.weight % 60).toString().padStart(2, '0')} min`;
+        return `${Math.floor(set.weight / 60)}:${(set.weight % 60).toString().padStart(2, '0')} ${t('min')}`;
       case 'calories':
         return `${set.weight} kcal`;
       case 'distance':
@@ -65,26 +69,33 @@ export default function WorkoutDetailScreen() {
     }
   }
 
-  // Group sets by series
-  const groupedSets: { seriesId: string | null; sets: (Set & { exercise: Exercise })[] }[] = [];
-  const seriesMap = new Map<string | null, (Set & { exercise: Exercise })[]>();
+  async function handleDelete() {
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm(t('deleteWorkoutConfirm'))
+      : await new Promise<boolean>((resolve) => {
+          Alert.alert(t('deleteWorkout'), t('deleteWorkoutConfirm'), [
+            { text: t('cancel'), style: 'cancel', onPress: () => resolve(false) },
+            { text: t('delete'), style: 'destructive', onPress: () => resolve(true) },
+          ]);
+        });
 
-  sets.forEach(set => {
-    const key = set.series_id || null;
-    if (!seriesMap.has(key)) {
-      seriesMap.set(key, []);
+    if (confirmed) {
+      try {
+        await deleteWorkout(parseInt(id as string));
+        router.back();
+      } catch (error) {
+        console.error('Failed to delete workout:', error);
+      }
     }
-    seriesMap.get(key)!.push(set);
-  });
+  }
 
-  seriesMap.forEach((sets, seriesId) => {
-    groupedSets.push({ seriesId, sets });
-  });
+  // Group sets by series
+  const groupedSets = groupSetsBySeries(sets);
 
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -92,7 +103,7 @@ export default function WorkoutDetailScreen() {
   if (!workout) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Workout not found</Text>
+        <Text style={styles.errorText}>{t('workoutNotFound')}</Text>
       </View>
     );
   }
@@ -102,154 +113,172 @@ export default function WorkoutDetailScreen() {
       <Stack.Screen
         options={{
           headerShown: true,
-          headerTitle: 'Workout Details',
-          headerBackTitle: 'Back',
+          headerTitle: t('workoutDetails'),
+          headerBackTitle: t('back'),
         }}
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-        {/* Workout Header */}
         <View style={styles.header}>
           <Text style={styles.dateText}>{formatDate(workout.date)}</Text>
           <Text style={styles.timeText}>{formatTime(workout.date)}</Text>
           {workout.duration_minutes && (
             <View style={styles.durationBadge}>
-              <Text style={styles.durationText}>{workout.duration_minutes} min</Text>
+              <Text style={styles.durationText}>
+                {workout.duration_minutes} {t('min')}
+              </Text>
             </View>
           )}
         </View>
 
-        {/* Sets grouped by series */}
         {groupedSets.map((group, groupIndex) => (
           <View key={groupIndex} style={styles.groupSection}>
             {group.seriesId && (
-              <View style={styles.seriesHeader}>
-                <Text style={styles.seriesTitle}>Series {groupIndex + 1}</Text>
-              </View>
+              <Badge variant="series" label={`${t('series')} ${groupIndex + 1}`} />
             )}
-
-            {group.sets.map((set, setIndex) => (
-              <View key={set.id} style={styles.setCard}>
-                <View style={styles.setHeader}>
-                  <Text style={styles.setNumber}>#{set.order_in_workout + 1}</Text>
-                  <Text style={styles.exerciseName}>{set.exercise.name}</Text>
-                </View>
-                <Text style={styles.setDetails}>{getSetDisplay(set)}</Text>
-                <Text style={styles.muscleGroups}>{set.exercise.muscle_groups.join(', ')}</Text>
-              </View>
-            ))}
+            <View style={styles.setsContainer}>
+              {group.sets.map((set) => (
+                <Card key={set.id} style={styles.setCard}>
+                  <View style={styles.setHeader}>
+                    <Text style={styles.setNumber}>#{set.order_in_workout + 1}</Text>
+                    <Text style={styles.exerciseName}>{set.exercise.name}</Text>
+                  </View>
+                  <Text style={styles.setDetails}>{getSetDisplay(set)}</Text>
+                  <Text style={styles.muscleGroups}>{set.exercise.muscle_groups.join(', ')}</Text>
+                </Card>
+              ))}
+            </View>
           </View>
         ))}
 
         {sets.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No sets recorded</Text>
+            <Text style={styles.emptyText}>{t('noSetsRecorded')}</Text>
           </View>
         )}
+
+        <Button
+          title={t('deleteWorkout')}
+          onPress={handleDelete}
+          variant="danger"
+          size="lg"
+          style={styles.deleteButton}
+        />
       </ScrollView>
     </>
   );
 }
 
+function groupSetsBySeries(sets: (Set & { exercise: Exercise })[]) {
+  const seriesMap = new Map<string | null, (Set & { exercise: Exercise })[]>();
+
+  sets.forEach((set) => {
+    const key = set.series_id || null;
+    if (!seriesMap.has(key)) {
+      seriesMap.set(key, []);
+    }
+    seriesMap.get(key)!.push(set);
+  });
+
+  const result: { seriesId: string | null; sets: (Set & { exercise: Exercise })[] }[] = [];
+  seriesMap.forEach((sets, seriesId) => {
+    result.push({ seriesId, sets });
+  });
+
+  return result;
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   header: {
-    marginBottom: 24,
-    paddingBottom: 16,
+    marginBottom: spacing.xxl,
+    paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.gray[300],
   },
   dateText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
+    color: colors.gray[900],
+    marginBottom: spacing.xs,
   },
   timeText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: typography.sizes.lg,
+    color: colors.gray[600],
+    marginBottom: spacing.sm,
   },
   durationBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: borderRadius.md,
   },
   durationText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.white,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
   },
   groupSection: {
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
   },
-  seriesHeader: {
-    backgroundColor: '#FF9500',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  seriesTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  setsContainer: {
+    marginTop: spacing.md,
   },
   setCard: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   setHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   setNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginRight: 8,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.primary,
+    marginRight: spacing.sm,
   },
   exerciseName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.gray[900],
   },
   setDetails: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.semibold,
+    color: colors.gray[900],
+    marginBottom: spacing.xs,
   },
   muscleGroups: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: typography.sizes.sm,
+    color: colors.gray[600],
   },
   emptyState: {
     padding: 40,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: typography.sizes.lg,
+    color: colors.gray[600],
   },
   errorText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: typography.sizes.lg,
+    color: colors.gray[600],
+  },
+  deleteButton: {
+    marginTop: spacing.xxl,
+    marginBottom: 40,
   },
 });
