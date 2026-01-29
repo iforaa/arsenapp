@@ -1,5 +1,5 @@
 import { getDatabase } from './database';
-import type { Exercise, Workout, Set, MuscleGroup, Equipment } from '../types';
+import type { Exercise, Workout, Set, MuscleGroup, Equipment, TrackingType } from '../types';
 
 // ============================================================================
 // SECTION 1: WORKOUT QUERIES
@@ -135,7 +135,7 @@ export async function addSet(
   weight: number,
   reps: number,
   seriesId?: string | null,
-  trackingMode?: string | null
+  trackingMode?: TrackingType | null
 ): Promise<number> {
   const db = getDatabase();
 
