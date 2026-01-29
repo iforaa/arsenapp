@@ -49,8 +49,22 @@ export async function initDatabase(): Promise<void> {
       reps INTEGER NOT NULL,
       order_in_workout INTEGER NOT NULL,
       series_id TEXT,
+      tracking_mode TEXT,
       timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+  `;
+
+  // Migration: add tracking_mode column if it doesn't exist
+  await db`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'sets' AND column_name = 'tracking_mode'
+      ) THEN
+        ALTER TABLE sets ADD COLUMN tracking_mode TEXT;
+      END IF;
+    END $$;
   `;
 
   // Create indexes for better query performance

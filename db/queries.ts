@@ -126,6 +126,7 @@ export async function getRecentWorkouts(limit: number = 10): Promise<Workout[]> 
  * @param weight - Weight used (in kg)
  * @param reps - Number of repetitions
  * @param seriesId - Optional series ID for grouping sets
+ * @param trackingMode - Optional tracking mode for cardio (distance/calories/time)
  * @returns The ID of the newly created set
  */
 export async function addSet(
@@ -133,7 +134,8 @@ export async function addSet(
   exerciseId: number,
   weight: number,
   reps: number,
-  seriesId?: string | null
+  seriesId?: string | null,
+  trackingMode?: string | null
 ): Promise<number> {
   const db = getDatabase();
 
@@ -147,8 +149,8 @@ export async function addSet(
   const nextOrder = (maxOrderResult[0]?.max_order ?? -1) + 1;
 
   const result = await db`
-    INSERT INTO sets (workout_id, exercise_id, weight, reps, order_in_workout, series_id, timestamp)
-    VALUES (${workoutId}, ${exerciseId}, ${weight}, ${reps}, ${nextOrder}, ${seriesId}, NOW())
+    INSERT INTO sets (workout_id, exercise_id, weight, reps, order_in_workout, series_id, tracking_mode, timestamp)
+    VALUES (${workoutId}, ${exerciseId}, ${weight}, ${reps}, ${nextOrder}, ${seriesId}, ${trackingMode}, NOW())
     RETURNING id
   `;
 
@@ -228,6 +230,7 @@ export async function getWorkoutSets(
     reps: row.reps,
     order_in_workout: row.order_in_workout,
     series_id: row.series_id,
+    tracking_mode: row.tracking_mode,
     timestamp: row.timestamp.toISOString(),
     exercise: {
       id: row.exercise_id,

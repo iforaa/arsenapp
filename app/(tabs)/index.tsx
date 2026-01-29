@@ -140,10 +140,14 @@ export default function HistoryScreen() {
     const needsValue2 = selectedExercise.tracking_type === 'weight_reps';
     if (needsValue2 && !value2) return;
 
+    // Determine tracking mode: use cardio selector for cardio exercises, otherwise use exercise's tracking_type
+    const isCardio = checkIsCardio(selectedExercise);
+    const trackingMode = isCardio ? cardioTrackingMode : selectedExercise.tracking_type;
+
     try {
       const weight = parseFloat(value1);
       const reps = needsValue2 ? parseInt(value2) : 0;
-      const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps, activeSeries);
+      const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps, activeSeries, trackingMode);
 
       addSetToWorkout({
         id: setId,
@@ -153,6 +157,7 @@ export default function HistoryScreen() {
         reps,
         order_in_workout: currentWorkoutSets.length + 1,
         series_id: activeSeries,
+        tracking_mode: trackingMode,
         timestamp: new Date().toISOString(),
         exercise: selectedExercise,
       });
@@ -338,7 +343,7 @@ export default function HistoryScreen() {
                   </Text>
                 </View>
                 <Text style={styles.setDetails}>
-                  {set.exercise ? formatSetDisplay(set.weight, set.reps, set.exercise.tracking_type) : ''}
+                  {set.exercise ? formatSetDisplay(set.weight, set.reps, set.tracking_mode || set.exercise.tracking_type) : ''}
                 </Text>
               </Card>
             ))}

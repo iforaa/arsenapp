@@ -28,6 +28,7 @@ export interface Set {
   reps: number;
   order_in_workout: number;
   series_id?: string | null;
+  tracking_mode?: TrackingType | null; // For cardio: distance/calories/time
   timestamp: string; // ISO timestamp
 }
 

@@ -104,7 +104,8 @@ export default function WorkoutDetailScreen() {
   }
 
   function getSetDisplay(set: Set & { exercise: Exercise }) {
-    const trackingType = set.exercise.tracking_type;
+    // Use set's tracking_mode if available, fallback to exercise's tracking_type
+    const trackingType = set.tracking_mode || set.exercise.tracking_type;
     switch (trackingType) {
       case 'weight_reps':
         return `${set.weight}kg × ${set.reps}`;
