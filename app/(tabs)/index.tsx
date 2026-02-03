@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, TextInput, SectionList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,7 @@ import { useWorkoutHistory } from '../../lib/hooks/useWorkoutHistory';
 import { getAllExercises, getRecentExercises, addSet, getLastSetForExercise } from '../../db/queries';
 import { Card, Badge, Button, NumberInput, WorkoutCard } from '../../components';
 import { colors, spacing, typography, borderRadius } from '../../lib/theme';
-import type { Exercise, Set } from '../../types';
+import type { Exercise, Set, MuscleGroup } from '../../types';
 
 // Map exercise names to translation keys
 const exerciseTranslationKeys: Record<string, string> = {
@@ -75,6 +75,8 @@ export default function HistoryScreen() {
   const [value1, setValue1] = useState('');
   const [value2, setValue2] = useState('');
   const [cardioTrackingMode, setCardioTrackingMode] = useState<'distance' | 'calories' | 'time'>('distance');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFabTooltip, setShowFabTooltip] = useState(false);
 
   // Helper functions for translations
   const getExerciseName = (exercise: Exercise) => {
@@ -108,15 +110,70 @@ export default function HistoryScreen() {
     setRecentExerciseIds(recent.map((e) => e.id));
   }
 
-  // Sort exercises: recent first, then alphabetically
-  const sortedExercises = [...allExercises].sort((a, b) => {
-    const aRecent = recentExerciseIds.indexOf(a.id);
-    const bRecent = recentExerciseIds.indexOf(b.id);
-    if (aRecent !== -1 && bRecent !== -1) return aRecent - bRecent;
-    if (aRecent !== -1) return -1;
-    if (bRecent !== -1) return 1;
-    return a.name.localeCompare(b.name);
-  });
+  // Group exercises by muscle for SectionList
+  interface ExerciseSection {
+    title: string;
+    data: Exercise[];
+    isRecent?: boolean;
+  }
+
+  const exerciseSections = useMemo((): ExerciseSection[] => {
+    // Filter by search query if present
+    let filtered = allExercises;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = allExercises.filter(
+        (ex) =>
+          getExerciseName(ex).toLowerCase().includes(query) ||
+          ex.muscle_groups.some((mg) => getMuscleGroupName(mg).toLowerCase().includes(query))
+      );
+    }
+
+    const sections: ExerciseSection[] = [];
+
+    // Add "Recently Used" section (only when not searching)
+    if (!searchQuery.trim()) {
+      const recentExercises = filtered
+        .filter((ex) => recentExerciseIds.includes(ex.id))
+        .sort((a, b) => recentExerciseIds.indexOf(a.id) - recentExerciseIds.indexOf(b.id))
+        .slice(0, 5);
+
+      if (recentExercises.length > 0) {
+        sections.push({
+          title: t('recentlyUsed'),
+          data: recentExercises,
+          isRecent: true,
+        });
+      }
+    }
+
+    // Group by primary muscle group
+    const muscleOrder: MuscleGroup[] = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'glutes', 'core', 'cardio'];
+    const groups = new Map<string, Exercise[]>();
+    for (const muscle of muscleOrder) {
+      groups.set(muscle, []);
+    }
+
+    for (const ex of filtered) {
+      const primaryMuscle = ex.muscle_groups[0];
+      if (groups.has(primaryMuscle)) {
+        groups.get(primaryMuscle)!.push(ex);
+      }
+    }
+
+    // Add muscle group sections
+    for (const muscle of muscleOrder) {
+      const exercises = groups.get(muscle)!;
+      if (exercises.length > 0) {
+        sections.push({
+          title: getMuscleGroupName(muscle),
+          data: exercises.sort((a, b) => getExerciseName(a).localeCompare(getExerciseName(b))),
+        });
+      }
+    }
+
+    return sections;
+  }, [allExercises, recentExerciseIds, searchQuery, t]);
 
   async function handleActivityTap(exercise: Exercise) {
     setSelectedExercise(exercise);
@@ -127,18 +184,19 @@ export default function HistoryScreen() {
     const lastSet = await getLastSetForExercise(exercise.id);
     if (lastSet) {
       setValue1(lastSet.weight.toString());
-      setValue2(exercise.tracking_type === 'weight_reps' ? lastSet.reps.toString() : '');
+      setValue2(lastSet.reps > 0 ? lastSet.reps.toString() : '3');
     } else {
       setValue1('');
-      setValue2(exercise.tracking_type === 'weight_reps' ? '3' : '');
+      setValue2('3');
     }
   }
 
   async function handleAddExercise() {
     if (!currentWorkout || !selectedExercise || !value1) return;
 
-    const needsValue2 = selectedExercise.tracking_type === 'weight_reps';
-    if (needsValue2 && !value2) return;
+    const isRepsOnly = selectedExercise.tracking_type === 'reps_only';
+    // For reps_only, value2 is not used; for all others, value2 is required
+    if (!isRepsOnly && !value2) return;
 
     // Determine tracking mode: use cardio selector for cardio exercises, otherwise use exercise's tracking_type
     const isCardio = checkIsCardio(selectedExercise);
@@ -146,7 +204,7 @@ export default function HistoryScreen() {
 
     try {
       const weight = parseFloat(value1);
-      const reps = needsValue2 ? parseInt(value2) : 0;
+      const reps = isRepsOnly ? parseInt(value1) : parseInt(value2);
       const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps, activeSeries, trackingMode);
 
       addSetToWorkout({
@@ -193,11 +251,8 @@ export default function HistoryScreen() {
 
   const config = selectedExercise ? getInputConfig(selectedExercise, cardioTrackingMode, t) : null;
   const isCardio = checkIsCardio(selectedExercise);
-  const canAdd = selectedExercise && value1 && (selectedExercise.tracking_type !== 'weight_reps' || value2);
-
-  const midpoint = Math.ceil(sortedExercises.length / 2);
-  const row1Exercises = sortedExercises.slice(0, midpoint);
-  const row2Exercises = sortedExercises.slice(midpoint);
+  const isRepsOnly = selectedExercise?.tracking_type === 'reps_only';
+  const canAdd = selectedExercise && value1 && (isRepsOnly || value2);
 
   // === RENDER ===
 
@@ -228,9 +283,26 @@ export default function HistoryScreen() {
             )}
           />
         )}
-        <TouchableOpacity style={styles.fab} onPress={startWorkout}>
-          <Text style={styles.fabText}>+</Text>
-        </TouchableOpacity>
+        <View
+          style={styles.fabContainer}
+          // @ts-ignore - web only props
+          onMouseEnter={() => setShowFabTooltip(true)}
+          onMouseLeave={() => setShowFabTooltip(false)}
+        >
+          {showFabTooltip && (
+            <View style={styles.fabTooltip}>
+              <Text style={styles.fabTooltipText}>{t('startWorkout')}</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={startWorkout}
+            accessibilityLabel={t('startWorkout')}
+            accessibilityRole="button"
+          >
+            <Text style={styles.fabText}>+</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -245,78 +317,113 @@ export default function HistoryScreen() {
         <Badge variant="series" label={`${t('series')} ${seriesCount || 1}`} />
       </View>
 
-      {/* Exercise cards */}
-      <View style={styles.activitiesSection}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-          {row1Exercises.map((ex) => (
-            <ExerciseCard
-              key={ex.id}
-              exercise={ex}
-              name={getExerciseName(ex)}
-              muscle={getMuscleGroupName(ex.muscle_groups[0])}
-              isRecent={recentExerciseIds.includes(ex.id)}
-              isSelected={selectedExercise?.id === ex.id}
-              onPress={() => handleActivityTap(ex)}
-            />
-          ))}
-        </ScrollView>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-          {row2Exercises.map((ex) => (
-            <ExerciseCard
-              key={ex.id}
-              exercise={ex}
-              name={getExerciseName(ex)}
-              muscle={getMuscleGroupName(ex.muscle_groups[0])}
-              isRecent={recentExerciseIds.includes(ex.id)}
-              isSelected={selectedExercise?.id === ex.id}
-              onPress={() => handleActivityTap(ex)}
-            />
-          ))}
-        </ScrollView>
+      {/* Exercise selection */}
+      <View style={styles.exerciseListContainer}>
+        <View style={styles.searchContainer}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t('searchExercises')}
+            placeholderTextColor={colors.gray[500]}
+            autoCorrect={false}
+            autoCapitalize="none"
+            clearButtonMode="while-editing"
+          />
+        </View>
+        {exerciseSections.length === 0 ? (
+          <View style={styles.emptySearch}>
+            <Text style={styles.emptySearchText}>{t('noExercisesFound')}</Text>
+          </View>
+        ) : (
+          <SectionList
+            sections={exerciseSections}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item, section }) => (
+              <ExerciseRow
+                exercise={item}
+                name={getExerciseName(item)}
+                muscle={item.muscle_groups.map(getMuscleGroupName).join(', ')}
+                isRecent={section.isRecent ?? false}
+                isSelected={selectedExercise?.id === item.id}
+                onPress={() => handleActivityTap(item)}
+              />
+            )}
+            renderSectionHeader={({ section }) => (
+              <View style={[styles.sectionHeader, section.isRecent && styles.sectionHeaderRecent]}>
+                <Text style={styles.sectionHeaderText}>{section.title}</Text>
+              </View>
+            )}
+            stickySectionHeadersEnabled={true}
+            showsVerticalScrollIndicator={true}
+          />
+        )}
       </View>
 
       {/* Exercise form */}
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {selectedExercise && config && (
           <View style={styles.selectedSection}>
-            <Text style={styles.selectedTitle}>{getExerciseName(selectedExercise)}</Text>
-            <Text style={styles.selectedSubtitle}>
-              {selectedExercise.muscle_groups.map(getMuscleGroupName).join(', ')}
-            </Text>
-
-            {isCardio && (
-              <View style={styles.modeSelector}>
-                {(['distance', 'calories', 'time'] as const).map((mode) => (
-                  <TouchableOpacity
-                    key={mode}
-                    style={[styles.modeButton, cardioTrackingMode === mode && styles.modeButtonActive]}
-                    onPress={() => setCardioTrackingMode(mode)}
-                  >
-                    <Text style={[styles.modeButtonText, cardioTrackingMode === mode && styles.modeButtonTextActive]}>
-                      {t(mode === 'time' ? 'duration' : mode)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            <View style={styles.selectedHeader}>
+              <View style={styles.selectedHeaderText}>
+                <Text style={styles.selectedTitle}>{getExerciseName(selectedExercise)}</Text>
+                <Text style={styles.selectedSubtitle}>
+                  {selectedExercise.muscle_groups.map(getMuscleGroupName).join(', ')}
+                </Text>
               </View>
-            )}
+              {isCardio && (
+                <View style={styles.modeSelector}>
+                  {(['distance', 'calories', 'time'] as const).map((mode) => (
+                    <TouchableOpacity
+                      key={mode}
+                      style={[styles.modeButton, cardioTrackingMode === mode && styles.modeButtonActive]}
+                      onPress={() => setCardioTrackingMode(mode)}
+                    >
+                      <Text style={[styles.modeButtonText, cardioTrackingMode === mode && styles.modeButtonTextActive]}>
+                        {t(mode === 'time' ? 'duration' : mode)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
 
             <Card style={styles.inputCard}>
-              <NumberInput
-                label={config.label1}
-                value={value1}
-                onChangeValue={setValue1}
-                unit={config.unit1}
-                step={config.step1}
-              />
-              {config.label2 && (
-                <NumberInput
-                  label={config.label2}
-                  value={value2}
-                  onChangeValue={setValue2}
-                  unit={config.unit2 || undefined}
-                  step={config.step2!}
-                />
-              )}
+              <View style={styles.inputRow}>
+                {config.label2 ? (
+                  <>
+                    <NumberInput
+                      label={config.label1}
+                      value={value1}
+                      onChangeValue={setValue1}
+                      unit={config.unit1}
+                      step={config.step1}
+                      compact
+                    />
+                    <NumberInput
+                      label={config.label2}
+                      value={value2}
+                      onChangeValue={setValue2}
+                      unit={config.unit2 || undefined}
+                      step={config.step2!}
+                      compact
+                    />
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.inputPlaceholder} />
+                    <NumberInput
+                      label={config.label1}
+                      value={value1}
+                      onChangeValue={setValue1}
+                      unit={config.unit1}
+                      step={config.step1}
+                      compact
+                    />
+                  </>
+                )}
+              </View>
             </Card>
 
             <Button
@@ -362,7 +469,7 @@ export default function HistoryScreen() {
 
 // === HELPER COMPONENTS ===
 
-function ExerciseCard({
+function ExerciseRow({
   exercise,
   name,
   muscle,
@@ -379,15 +486,23 @@ function ExerciseCard({
 }) {
   return (
     <TouchableOpacity
-      style={[styles.activityCard, isRecent && styles.activityCardRecent, isSelected && styles.activityCardSelected]}
+      style={[
+        styles.exerciseRow,
+        isRecent && !isSelected && styles.exerciseRowRecent,
+        isSelected && styles.exerciseRowSelected,
+      ]}
       onPress={onPress}
+      activeOpacity={0.7}
     >
-      <Text style={[styles.activityName, isSelected && styles.activityNameSelected]} numberOfLines={2}>
-        {name}
-      </Text>
-      <Text style={[styles.activityMuscle, isSelected && styles.activityMuscleSelected]} numberOfLines={1}>
-        {muscle}
-      </Text>
+      <View style={styles.exerciseRowContent}>
+        <Text style={[styles.exerciseName, isSelected && styles.exerciseNameSelected]} numberOfLines={1}>
+          {name}
+        </Text>
+        <Text style={[styles.exerciseMuscle, isSelected && styles.exerciseMuscleSelected]} numberOfLines={1}>
+          {muscle}
+        </Text>
+      </View>
+      <Text style={[styles.exerciseChevron, isSelected && styles.exerciseNameSelected]}>›</Text>
     </TouchableOpacity>
   );
 }
@@ -408,16 +523,16 @@ function getInputConfig(exercise: Exercise, cardioMode: string, t: (key: string)
 
   if (isCardio) {
     const configs: Record<string, any> = {
-      distance: { label1: t('distance'), unit1: 'km', step1: 0.5, label2: null },
-      calories: { label1: t('calories'), unit1: 'kcal', step1: 10, label2: null },
-      time: { label1: t('duration'), unit1: t('min'), step1: 1, label2: null },
+      distance: { label1: t('distance'), unit1: 'km', step1: 0.5, label2: t('reps'), unit2: '', step2: 1 },
+      calories: { label1: t('calories'), unit1: 'kcal', step1: 10, label2: t('reps'), unit2: '', step2: 1 },
+      time: { label1: t('duration'), unit1: t('min'), step1: 1, label2: t('reps'), unit2: '', step2: 1 },
     };
     return configs[cardioMode];
   }
 
   const configs: Record<string, any> = {
     weight_reps: { label1: t('weight'), unit1: 'kg', step1: 2.5, label2: t('reps'), unit2: '', step2: 1 },
-    time: { label1: t('duration'), unit1: 'seconds', step1: 5, label2: null },
+    time: { label1: t('duration'), unit1: 'seconds', step1: 5, label2: t('reps'), unit2: '', step2: 1 },
     reps_only: { label1: t('reps'), unit1: '', step1: 1, label2: null },
   };
   return configs[exercise.tracking_type] || { label1: t('value'), unit1: '', step1: 1, label2: t('reps'), step2: 1 };
@@ -428,13 +543,13 @@ function formatSetDisplay(weight: number, reps: number, trackingType: string): s
     case 'weight_reps':
       return `${weight}kg × ${reps}`;
     case 'time':
-      return `${Math.floor(weight / 60)}:${(weight % 60).toString().padStart(2, '0')}`;
+      return `${Math.floor(weight / 60)}:${(weight % 60).toString().padStart(2, '0')} × ${reps}`;
     case 'calories':
-      return `${weight} kcal`;
+      return `${weight}kcal × ${reps}`;
     case 'distance':
-      return `${weight} km`;
+      return `${weight}km × ${reps}`;
     case 'reps_only':
-      return `${weight}`;
+      return `${reps}`;
     default:
       return `${weight} × ${reps}`;
   }
@@ -467,10 +582,27 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     textAlign: 'center',
   },
-  fab: {
+  fabContainer: {
     position: 'absolute',
     right: spacing.xl,
     bottom: spacing.xl,
+    alignItems: 'center',
+  },
+  fabTooltip: {
+    position: 'absolute',
+    bottom: 72,
+    backgroundColor: colors.gray[900],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
+    whiteSpace: 'nowrap',
+  },
+  fabTooltipText: {
+    color: colors.white,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+  },
+  fab: {
     width: 64,
     height: 64,
     borderRadius: borderRadius.full,
@@ -485,8 +617,11 @@ const styles = StyleSheet.create({
   },
   fabText: {
     color: colors.white,
-    fontSize: 32,
+    fontSize: 40,
     fontWeight: typography.weights.semibold,
+    textAlign: 'center',
+    lineHeight: 40,
+    marginTop: -2,
   },
   topHeader: {
     flexDirection: 'row',
@@ -506,45 +641,93 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: typography.weights.medium,
   },
-  activitiesSection: {
-    backgroundColor: colors.white,
+  exerciseListContainer: {
+    maxHeight: 280,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[300],
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
   },
-  horizontalScroll: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  activityCard: {
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.gray[200],
     borderRadius: borderRadius.md,
-    padding: spacing.md,
-    width: 110,
-    height: 70,
-    justifyContent: 'space-between',
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    height: 44,
   },
-  activityCardRecent: {
+  searchIcon: {
+    marginRight: spacing.sm,
+    fontSize: typography.sizes.lg,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: typography.sizes.lg,
+    color: colors.gray[900],
+    paddingVertical: spacing.sm,
+  },
+  sectionHeader: {
+    backgroundColor: colors.gray[100],
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  sectionHeaderRecent: {
     backgroundColor: '#E3F2FD',
   },
-  activityCardSelected: {
+  sectionHeaderText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.gray[600],
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  exerciseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+    minHeight: 60,
+  },
+  exerciseRowRecent: {
+    backgroundColor: '#F5FAFF',
+  },
+  exerciseRowSelected: {
     backgroundColor: colors.primary,
   },
-  activityName: {
-    fontSize: typography.sizes.sm,
+  exerciseRowContent: {
+    flex: 1,
+  },
+  exerciseName: {
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
     color: colors.gray[900],
   },
-  activityNameSelected: {
+  exerciseNameSelected: {
     color: colors.white,
   },
-  activityMuscle: {
-    fontSize: typography.sizes.xs,
+  exerciseMuscle: {
+    fontSize: typography.sizes.md,
     color: colors.gray[600],
+    marginTop: spacing.xs,
   },
-  activityMuscleSelected: {
+  exerciseMuscleSelected: {
     color: '#E3F2FD',
+  },
+  exerciseChevron: {
+    fontSize: typography.sizes.xxl,
+    color: colors.gray[400],
+    marginLeft: spacing.sm,
+  },
+  emptySearch: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  emptySearchText: {
+    fontSize: typography.sizes.lg,
+    color: colors.gray[500],
   },
   scrollView: {
     flex: 1,
@@ -555,25 +738,32 @@ const styles = StyleSheet.create({
   selectedSection: {
     marginBottom: spacing.xl,
   },
+  selectedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  selectedHeaderText: {
+    flex: 1,
+  },
   selectedTitle: {
-    fontSize: typography.sizes.xxl,
+    fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: colors.gray[900],
-    marginBottom: spacing.xs,
   },
   selectedSubtitle: {
-    fontSize: typography.sizes.lg,
+    fontSize: typography.sizes.md,
     color: colors.gray[600],
-    marginBottom: spacing.lg,
+    marginTop: spacing.xs,
   },
   modeSelector: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.xl,
+    gap: spacing.xs,
   },
   modeButton: {
-    flex: 1,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
     borderRadius: borderRadius.sm,
     backgroundColor: colors.gray[200],
     alignItems: 'center',
@@ -582,8 +772,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   modeButtonText: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
     color: colors.gray[600],
   },
   modeButtonTextActive: {
@@ -592,6 +782,13 @@ const styles = StyleSheet.create({
   inputCard: {
     backgroundColor: colors.gray[100],
     marginBottom: spacing.lg,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  inputPlaceholder: {
+    flex: 1,
   },
   addButton: {
     marginBottom: spacing.lg,

@@ -8,6 +8,7 @@ interface NumberInputProps {
   unit?: string;
   step: number;
   placeholder?: string;
+  compact?: boolean;
 }
 
 export function NumberInput({
@@ -17,6 +18,7 @@ export function NumberInput({
   unit,
   step,
   placeholder = '0',
+  compact = false,
 }: NumberInputProps) {
   function adjustValue(direction: 'up' | 'down') {
     const current = parseFloat(value) || 0;
@@ -25,6 +27,36 @@ export function NumberInput({
   }
 
   const displayLabel = unit ? `${label} (${unit})` : label;
+
+  if (compact) {
+    return (
+      <View style={styles.compactContainer}>
+        <Text style={styles.compactLabel}>{displayLabel}</Text>
+        <View style={styles.compactRow}>
+          <TouchableOpacity
+            style={styles.compactButton}
+            onPress={() => adjustValue('down')}
+          >
+            <Text style={styles.compactButtonText}>−</Text>
+          </TouchableOpacity>
+          <TextInput
+            style={styles.compactInput}
+            value={value}
+            onChangeText={onChangeValue}
+            keyboardType="decimal-pad"
+            placeholder={placeholder}
+            placeholderTextColor={colors.gray[500]}
+          />
+          <TouchableOpacity
+            style={styles.compactButton}
+            onPress={() => adjustValue('up')}
+          >
+            <Text style={styles.compactButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -91,5 +123,46 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: typography.sizes.xl + 2,
     fontWeight: typography.weights.semibold,
+  },
+  // Compact styles
+  compactContainer: {
+    flex: 1,
+  },
+  compactLabel: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.gray[600],
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  compactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  compactInput: {
+    width: 70,
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.semibold,
+    textAlign: 'center',
+  },
+  compactButton: {
+    flex: 1,
+    height: 44,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  compactButtonText: {
+    color: colors.white,
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
   },
 });

@@ -5,6 +5,7 @@ export default {
   progress: 'Progress',
 
   // Workout screen
+  startWorkout: 'Start Workout',
   finish: 'Finish',
   nextSeries: 'Next Series',
   series: 'Series',
@@ -71,6 +72,11 @@ export default {
   'exercise.running': 'Running',
   'exercise.cycling': 'Cycling',
   'exercise.swimming': 'Swimming',
+
+  // Exercise selection
+  recentlyUsed: 'Recently Used',
+  searchExercises: 'Search exercises...',
+  noExercisesFound: 'No exercises found',
 
   // Muscle groups
   'muscle.chest': 'Chest',

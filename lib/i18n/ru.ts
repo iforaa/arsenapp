@@ -5,6 +5,7 @@ export default {
   progress: 'Прогресс',
 
   // Workout screen
+  startWorkout: 'Начать тренировку',
   finish: 'Завершить',
   nextSeries: 'След. серия',
   series: 'Серия',
@@ -71,6 +72,11 @@ export default {
   'exercise.running': 'Бег',
   'exercise.cycling': 'Велосипед',
   'exercise.swimming': 'Плавание',
+
+  // Exercise selection
+  recentlyUsed: 'Недавние',
+  searchExercises: 'Поиск упражнений...',
+  noExercisesFound: 'Упражнения не найдены',
 
   // Muscle groups
   'muscle.chest': 'Грудь',
