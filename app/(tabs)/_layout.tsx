@@ -14,10 +14,15 @@ export default function TabLayout() {
         tabBarStyle: Platform.select({
           ios: {
             backgroundColor: '#F2F2F7',
+            paddingBottom: 8,
+            height: 60,
           },
-          default: {},
+          default: {
+            paddingBottom: 8,
+            height: 60,
+          },
         }),
-        headerShown: true,
+        headerShown: false,
       }}
     >
       <Tabs.Screen

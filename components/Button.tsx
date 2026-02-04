@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
   },
   size_lg: {
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   size_lg_text: {
     fontSize: typography.sizes.xl,
