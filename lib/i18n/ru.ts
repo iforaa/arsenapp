@@ -88,4 +88,11 @@ export default {
   'muscle.core': 'Пресс',
   'muscle.glutes': 'Ягодицы',
   'muscle.cardio': 'Кардио',
+  'muscle.hamstrings': 'Бицепс бедра',
+  'muscle.abs': 'Пресс',
+  'muscle.quads': 'Квадрицепс',
+  'muscle.calves': 'Икры',
+  'muscle.forearms': 'Предплечья',
+  'muscle.lats': 'Широчайшие',
+  'muscle.traps': 'Трапеции',
 };

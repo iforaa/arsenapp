@@ -47,6 +47,13 @@ const muscleTranslationKeys: Record<string, string> = {
   'core': 'muscle.core',
   'glutes': 'muscle.glutes',
   'cardio': 'muscle.cardio',
+  'hamstrings': 'muscle.hamstrings',
+  'abs': 'muscle.abs',
+  'quads': 'muscle.quads',
+  'calves': 'muscle.calves',
+  'forearms': 'muscle.forearms',
+  'lats': 'muscle.lats',
+  'traps': 'muscle.traps',
 };
 
 export default function HistoryScreen() {

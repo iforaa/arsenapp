@@ -88,4 +88,11 @@ export default {
   'muscle.core': 'Core',
   'muscle.glutes': 'Glutes',
   'muscle.cardio': 'Cardio',
+  'muscle.hamstrings': 'Hamstrings',
+  'muscle.abs': 'Abs',
+  'muscle.quads': 'Quads',
+  'muscle.calves': 'Calves',
+  'muscle.forearms': 'Forearms',
+  'muscle.lats': 'Lats',
+  'muscle.traps': 'Traps',
 };
