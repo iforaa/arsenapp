@@ -110,13 +110,13 @@ export default function WorkoutDetailScreen() {
       case 'weight_reps':
         return `${set.weight}kg × ${set.reps}`;
       case 'time':
-        return `${Math.floor(set.weight / 60)}:${(set.weight % 60).toString().padStart(2, '0')} ${t('min')}`;
+        return `${Math.floor(set.weight / 60)}:${(set.weight % 60).toString().padStart(2, '0')} × ${set.reps}`;
       case 'calories':
-        return `${set.weight} kcal`;
+        return `${set.weight}kcal × ${set.reps}`;
       case 'distance':
-        return `${set.weight} km`;
+        return `${set.weight}km × ${set.reps}`;
       case 'reps_only':
-        return `${set.weight}`;
+        return `${set.reps}`;
       default:
         return `${set.weight} × ${set.reps}`;
     }

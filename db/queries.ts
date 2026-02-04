@@ -191,6 +191,7 @@ export async function getLastSetForExercise(exerciseId: number): Promise<Set | n
     reps: row.reps,
     order_in_workout: row.order_in_workout,
     series_id: row.series_id,
+    tracking_mode: row.tracking_mode,
     timestamp: row.timestamp.toISOString(),
   };
 }

@@ -178,10 +178,14 @@ export default function HistoryScreen() {
   async function handleActivityTap(exercise: Exercise) {
     setSelectedExercise(exercise);
 
-    const isCardio = ['cardio', 'legs'].some((mg) => exercise.muscle_groups.includes(mg as any));
-    if (isCardio) setCardioTrackingMode('distance');
-
     const lastSet = await getLastSetForExercise(exercise.id);
+
+    // For cardio exercises, use last tracking mode or default to 'distance'
+    if (checkIsCardio(exercise)) {
+      const lastTrackingMode = lastSet?.tracking_mode as 'distance' | 'calories' | 'time' | undefined;
+      setCardioTrackingMode(lastTrackingMode || 'distance');
+    }
+
     if (lastSet) {
       setValue1(lastSet.weight.toString());
       setValue2(lastSet.reps > 0 ? lastSet.reps.toString() : '3');
@@ -426,14 +430,6 @@ export default function HistoryScreen() {
               </View>
             </Card>
 
-            <Button
-              title={t('add')}
-              onPress={handleAddExercise}
-              variant="success"
-              size="lg"
-              disabled={!canAdd}
-              style={styles.addButton}
-            />
           </View>
         )}
 
@@ -460,8 +456,9 @@ export default function HistoryScreen() {
 
       {/* Footer */}
       <View style={styles.footer}>
+        <Button title={t('add')} onPress={handleAddExercise} variant="success" size="lg" disabled={!canAdd} style={styles.addButton} />
         <Button title={t('nextSeries')} onPress={handleNextSeries} variant="primary" size="lg" style={styles.nextButton} />
-        <Button title={t('finish')} onPress={handleFinish} variant="secondary" size="lg" style={styles.finishButton} />
+        <Button title={t('finish')} onPress={handleFinish} variant="danger" size="lg" style={styles.finishButton} />
       </View>
     </View>
   );
@@ -524,7 +521,7 @@ function getInputConfig(exercise: Exercise, cardioMode: string, t: (key: string)
   if (isCardio) {
     const configs: Record<string, any> = {
       distance: { label1: t('distance'), unit1: 'km', step1: 0.5, label2: t('reps'), unit2: '', step2: 1 },
-      calories: { label1: t('calories'), unit1: 'kcal', step1: 10, label2: t('reps'), unit2: '', step2: 1 },
+      calories: { label1: t('calories'), unit1: 'kcal', step1: 1, label2: t('reps'), unit2: '', step2: 1 },
       time: { label1: t('duration'), unit1: t('min'), step1: 1, label2: t('reps'), unit2: '', step2: 1 },
     };
     return configs[cardioMode];
@@ -791,7 +788,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addButton: {
-    marginBottom: spacing.lg,
+    flex: 1,
   },
   currentSeriesSection: {
     marginTop: spacing.md,
@@ -839,7 +836,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.gray[300],
   },
   nextButton: {
-    flex: 2,
+    flex: 1,
   },
   finishButton: {
     flex: 1,
