@@ -21,7 +21,7 @@ export function WorkoutCard({ workout, onPress, formatDate, formatTime }: Workou
           <Text style={styles.time}>{formatTime(workout.date)}</Text>
         </View>
         <View style={styles.stats}>
-          {workout.duration_minutes && (
+          {workout.duration_minutes > 0 && (
             <View style={styles.statBadge}>
               <Text style={styles.statValue}>{workout.duration_minutes}</Text>
               <Text style={styles.statLabel}>{t('min')}</Text>
@@ -29,7 +29,6 @@ export function WorkoutCard({ workout, onPress, formatDate, formatTime }: Workou
           )}
         </View>
       </View>
-
     </TouchableOpacity>
   );
 }

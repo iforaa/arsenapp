@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, TextInput, SectionList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, TextInput, SectionList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -8,9 +8,10 @@ import { useWorkoutStore } from '../../lib/store';
 import { useWorkoutSession } from '../../lib/hooks/useWorkoutSession';
 import { useWorkoutHistory } from '../../lib/hooks/useWorkoutHistory';
 import { getAllExercises, getRecentExercises, addSet, getLastSetForExercise } from '../../db/queries';
-import { Card, Badge, Button, NumberInput, WorkoutCard } from '../../components';
+import { Badge, Button, NumberInput, WorkoutCard } from '../../components';
+import { SimpleBottomSheet } from '../../components/SimpleBottomSheet';
 import { colors, spacing, typography, borderRadius } from '../../lib/theme';
-import type { Exercise, Set, MuscleGroup } from '../../types';
+import type { Exercise, MuscleGroup } from '../../types';
 
 // Map exercise names to translation keys
 const exerciseTranslationKeys: Record<string, string> = {
@@ -86,6 +87,7 @@ export default function HistoryScreen() {
   const [cardioTrackingMode, setCardioTrackingMode] = useState<'distance' | 'calories' | 'time'>('distance');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFabTooltip, setShowFabTooltip] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
 
   // Helper functions for translations
   const getExerciseName = (exercise: Exercise) => {
@@ -202,6 +204,9 @@ export default function HistoryScreen() {
       setValue1('');
       setValue2('3');
     }
+
+    // Open bottom sheet
+    setShowBottomSheet(true);
   }
 
   async function handleAddExercise() {
@@ -233,10 +238,11 @@ export default function HistoryScreen() {
         exercise: selectedExercise,
       });
 
-      // Clear selection for next exercise
+      // Clear selection and close bottom sheet
       setSelectedExercise(null);
       setValue1('');
       setValue2('');
+      setShowBottomSheet(false);
     } catch (error) {
       console.error('Failed to add exercise:', error);
     }
@@ -330,8 +336,8 @@ export default function HistoryScreen() {
         <Badge variant="series" label={`${t('series')} ${seriesCount || 1}`} />
       </View>
 
-      {/* Exercise selection */}
-      <View style={styles.exerciseListContainer}>
+      {/* Exercise picker - stretches to footer */}
+      <View style={styles.exercisePickerContainer}>
         <View style={styles.searchContainer}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
@@ -374,14 +380,42 @@ export default function HistoryScreen() {
         )}
       </View>
 
-      {/* Exercise form */}
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      {/* Footer */}
+      <View style={styles.footer}>
+        <Button title={t('nextSeries')} onPress={handleNextSeries} variant="primary" size="lg" style={styles.nextButton} disabled={currentSeriesSets.length === 0} />
+        <Button title={t('finish')} onPress={handleFinish} variant="danger" size="lg" style={styles.finishButton} />
+      </View>
+
+      {/* Bottom Sheet for exercise input */}
+      <SimpleBottomSheet
+        visible={showBottomSheet}
+        onClose={() => {
+          setShowBottomSheet(false);
+          setSelectedExercise(null);
+        }}
+      >
         {selectedExercise && config && (
-          <View style={styles.selectedSection}>
-            <View style={styles.selectedHeader}>
-              <View style={styles.selectedHeaderText}>
-                <Text style={styles.selectedTitle}>{getExerciseName(selectedExercise)}</Text>
-                <Text style={styles.selectedSubtitle}>
+          <View style={styles.sheetContent}>
+            {/* Current series info */}
+            <View style={styles.seriesInfo}>
+              <Text style={styles.seriesTitle}>{t('series')} {seriesCount}</Text>
+              {currentSeriesSets.length > 0 ? (
+                <View style={styles.seriesExercises}>
+                  {currentSeriesSets.map((set, index) => (
+                    <Text key={set.id} style={styles.seriesExerciseItem}>
+                      {index + 1}. {set.exercise ? getExerciseName(set.exercise) : ''} — {set.exercise ? formatSetDisplay(set.weight, set.reps, set.tracking_mode || set.exercise.tracking_type) : ''}
+                    </Text>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.seriesEmpty}>{t('noExercisesYet')}</Text>
+              )}
+            </View>
+
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHeaderText}>
+                <Text style={styles.sheetTitle}>{getExerciseName(selectedExercise)}</Text>
+                <Text style={styles.sheetSubtitle}>
                   {selectedExercise.muscle_groups.map(getMuscleGroupName).join(', ')}
                 </Text>
               </View>
@@ -402,73 +436,52 @@ export default function HistoryScreen() {
               )}
             </View>
 
-            <Card style={styles.inputCard}>
-              <View style={styles.inputRow}>
-                {config.label2 ? (
-                  <>
-                    <NumberInput
-                      label={config.label1}
-                      value={value1}
-                      onChangeValue={setValue1}
-                      unit={config.unit1}
-                      step={config.step1}
-                      compact
-                    />
-                    <NumberInput
-                      label={config.label2}
-                      value={value2}
-                      onChangeValue={setValue2}
-                      unit={config.unit2 || undefined}
-                      step={config.step2!}
-                      compact
-                    />
-                  </>
-                ) : (
-                  <>
-                    <View style={styles.inputPlaceholder} />
-                    <NumberInput
-                      label={config.label1}
-                      value={value1}
-                      onChangeValue={setValue1}
-                      unit={config.unit1}
-                      step={config.step1}
-                      compact
-                    />
-                  </>
-                )}
-              </View>
-            </Card>
+            <View style={styles.sheetInputRow}>
+              {config.label2 ? (
+                <>
+                  <NumberInput
+                    label={config.label1}
+                    value={value1}
+                    onChangeValue={setValue1}
+                    unit={config.unit1}
+                    step={config.step1}
+                    compact
+                  />
+                  <NumberInput
+                    label={config.label2}
+                    value={value2}
+                    onChangeValue={setValue2}
+                    unit={config.unit2 || undefined}
+                    step={config.step2!}
+                    compact
+                  />
+                </>
+              ) : (
+                <>
+                  <View style={styles.inputPlaceholder} />
+                  <NumberInput
+                    label={config.label1}
+                    value={value1}
+                    onChangeValue={setValue1}
+                    unit={config.unit1}
+                    step={config.step1}
+                    compact
+                  />
+                </>
+              )}
+            </View>
 
+            <Button
+              title={t('add')}
+              onPress={handleAddExercise}
+              variant="success"
+              size="lg"
+              disabled={!canAdd}
+              style={styles.sheetAddButton}
+            />
           </View>
         )}
-
-        {/* Current series exercises */}
-        {currentSeriesSets.length > 0 && (
-          <View style={styles.currentSeriesSection}>
-            <Text style={styles.sectionTitle}>{t('currentSeries')}</Text>
-            {currentSeriesSets.map((set, index) => (
-              <Card key={set.id} style={styles.setCard}>
-                <View style={styles.setInfo}>
-                  <Text style={styles.setNumber}>#{index + 1}</Text>
-                  <Text style={styles.setExerciseName}>
-                    {set.exercise ? getExerciseName(set.exercise) : ''}
-                  </Text>
-                </View>
-                <Text style={styles.setDetails}>
-                  {set.exercise ? formatSetDisplay(set.weight, set.reps, set.tracking_mode || set.exercise.tracking_type) : ''}
-                </Text>
-              </Card>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Button title={t('add')} onPress={handleAddExercise} variant="success" size="lg" disabled={!canAdd} style={styles.addButton} />
-        <Button title={t('nextSeries')} onPress={handleNextSeries} variant="primary" size="lg" style={styles.nextButton} />
-        <Button title={t('finish')} onPress={handleFinish} variant="danger" size="lg" style={styles.finishButton} />
-      </View>
+      </SimpleBottomSheet>
     </View>
   );
 }
@@ -647,10 +660,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: typography.weights.medium,
   },
-  exerciseListContainer: {
-    maxHeight: 340,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[300],
+  exercisePickerContainer: {
+    flex: 1,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -735,34 +746,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
     color: colors.gray[500],
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing.lg,
-  },
-  selectedSection: {
-    marginBottom: spacing.xl,
-  },
-  selectedHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  selectedHeaderText: {
-    flex: 1,
-  },
-  selectedTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    color: colors.gray[900],
-  },
-  selectedSubtitle: {
-    fontSize: typography.sizes.md,
-    color: colors.gray[600],
-    marginTop: spacing.xs,
-  },
   modeSelector: {
     flexDirection: 'row',
   },
@@ -785,58 +768,9 @@ const styles = StyleSheet.create({
   modeButtonTextActive: {
     color: colors.white,
   },
-  inputCard: {
-    backgroundColor: colors.gray[100],
-    marginBottom: spacing.lg,
-  },
-  inputRow: {
-    flexDirection: 'row',
-  },
   inputPlaceholder: {
     flex: 1,
     marginRight: spacing.sm,
-  },
-  addButton: {
-    flex: 1,
-    marginHorizontal: spacing.xs,
-  },
-  currentSeriesSection: {
-    marginTop: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.semibold,
-    color: colors.gray[900],
-    marginBottom: spacing.md,
-  },
-  setCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  setInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  setNumber: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semibold,
-    color: colors.primary,
-    marginRight: spacing.sm,
-    width: 30,
-  },
-  setExerciseName: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.medium,
-    color: colors.gray[900],
-    flex: 1,
-  },
-  setDetails: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    color: colors.gray[700],
   },
   footer: {
     flexDirection: 'row',
@@ -846,10 +780,65 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 1,
-    marginHorizontal: spacing.xs,
+    marginRight: spacing.xs,
   },
   finishButton: {
     flex: 1,
     marginLeft: spacing.xs,
+  },
+  // Bottom sheet styles
+  sheetContent: {
+    padding: spacing.lg,
+  },
+  seriesInfo: {
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  seriesTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.primary,
+    marginBottom: spacing.sm,
+  },
+  seriesExercises: {
+    marginLeft: spacing.xs,
+  },
+  seriesExerciseItem: {
+    fontSize: typography.sizes.md,
+    color: colors.gray[700],
+    marginBottom: spacing.xs,
+  },
+  seriesEmpty: {
+    fontSize: typography.sizes.md,
+    color: colors.gray[500],
+    fontStyle: 'italic',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  sheetHeaderText: {
+    flex: 1,
+  },
+  sheetTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.gray[900],
+  },
+  sheetSubtitle: {
+    fontSize: typography.sizes.md,
+    color: colors.gray[600],
+    marginTop: spacing.xs,
+  },
+  sheetInputRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.lg,
+  },
+  sheetAddButton: {
+    marginTop: spacing.sm,
   },
 });

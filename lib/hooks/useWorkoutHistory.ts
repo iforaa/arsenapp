@@ -42,7 +42,7 @@ export function useWorkoutHistory(limit: number = 20): UseWorkoutHistoryReturn {
         return t('yesterday');
       }
 
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString(undefined, {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
@@ -53,10 +53,9 @@ export function useWorkoutHistory(limit: number = 20): UseWorkoutHistoryReturn {
 
   const formatTime = useCallback((dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString(undefined, {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
     });
   }, []);
 

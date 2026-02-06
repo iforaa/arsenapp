@@ -15,6 +15,7 @@ export default {
   completeFirstWorkout: 'Завершите первую тренировку, чтобы увидеть её здесь!',
   add: 'Добавить',
   currentSeries: 'Текущая серия',
+  noExercisesYet: 'Пока нет упражнений',
 
   // Input labels
   weight: 'Вес',

@@ -184,7 +184,7 @@ export default function WorkoutDetailScreen() {
         <View style={styles.header}>
           <Text style={styles.dateText}>{formatDate(workout.date)}</Text>
           <Text style={styles.timeText}>{formatTime(workout.date)}</Text>
-          {workout.duration_minutes && (
+          {workout.duration_minutes > 0 && (
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>
                 {workout.duration_minutes} {t('min')}

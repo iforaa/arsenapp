@@ -21,12 +21,7 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [activeSeries, setActiveSeries] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
-
-  // Calculate series count from current sets
-  const uniqueSeriesIds = new Set(
-    currentWorkoutSets.filter((s) => s.series_id).map((s) => s.series_id)
-  );
-  const seriesCount = uniqueSeriesIds.size;
+  const [currentSeriesNumber, setCurrentSeriesNumber] = useState(1);
 
   const startWorkout = useCallback(async () => {
     try {
@@ -36,6 +31,7 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
         setCurrentWorkout(workout);
         setActiveSeries(`series_${Date.now()}`);
         setStartTime(Date.now());
+        setCurrentSeriesNumber(1);
         setWorkoutStarted(true);
       }
     } catch (error) {
@@ -66,6 +62,7 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
 
         clearWorkout();
         setActiveSeries(null);
+        setCurrentSeriesNumber(1);
         setWorkoutStarted(false);
         onWorkoutEnd?.();
       } catch (error) {
@@ -83,6 +80,7 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
     }
     clearWorkout();
     setActiveSeries(null);
+    setCurrentSeriesNumber(1);
     setWorkoutStarted(false);
     onWorkoutEnd?.();
   }, [currentWorkout, currentWorkoutSets, clearWorkout, onWorkoutEnd]);
@@ -95,6 +93,7 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
       }
       // Start new series
       setActiveSeries(`series_${Date.now()}`);
+      setCurrentSeriesNumber((prev) => prev + 1);
     },
     []
   );
@@ -102,7 +101,7 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
   return {
     workoutStarted,
     activeSeries,
-    seriesCount,
+    seriesCount: currentSeriesNumber,
     startWorkout,
     finishWorkout,
     goBackToHistory,

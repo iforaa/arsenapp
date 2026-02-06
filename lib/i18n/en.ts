@@ -15,6 +15,7 @@ export default {
   completeFirstWorkout: 'Complete your first workout to see it here!',
   add: 'Add',
   currentSeries: 'Current Series',
+  noExercisesYet: 'No exercises yet',
 
   // Input labels
   weight: 'Weight',
