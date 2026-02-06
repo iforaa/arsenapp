@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, Activit
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWorkoutStore } from '../../lib/store';
 import { useWorkoutSession } from '../../lib/hooks/useWorkoutSession';
 import { useWorkoutHistory } from '../../lib/hooks/useWorkoutHistory';
@@ -62,6 +63,7 @@ export default function HistoryScreen() {
   const { currentWorkout, currentWorkoutSets, addSetToWorkout } = useWorkoutStore();
 
   // Hooks
+  const insets = useSafeAreaInsets();
   const { workouts, loading: loadingHistory, refresh, formatDate, formatTime } = useWorkoutHistory();
   const {
     workoutStarted,
@@ -143,7 +145,7 @@ export default function HistoryScreen() {
       const recentExercises = filtered
         .filter((ex) => recentExerciseIds.includes(ex.id))
         .sort((a, b) => recentExerciseIds.indexOf(a.id) - recentExerciseIds.indexOf(b.id))
-        .slice(0, 5);
+        .slice(0, 4);
 
       if (recentExercises.length > 0) {
         sections.push({
@@ -269,7 +271,7 @@ export default function HistoryScreen() {
 
   if (!workoutStarted) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         {loadingHistory ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -319,7 +321,7 @@ export default function HistoryScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Back header */}
       <View style={styles.topHeader}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -646,7 +648,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   exerciseListContainer: {
-    maxHeight: 280,
+    maxHeight: 340,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[300],
   },
@@ -763,7 +765,6 @@ const styles = StyleSheet.create({
   },
   modeSelector: {
     flexDirection: 'row',
-    gap: spacing.xs,
   },
   modeButton: {
     paddingVertical: spacing.sm,
@@ -771,6 +772,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     backgroundColor: colors.gray[200],
     alignItems: 'center',
+    marginLeft: spacing.xs,
   },
   modeButtonActive: {
     backgroundColor: colors.primary,
@@ -789,13 +791,14 @@ const styles = StyleSheet.create({
   },
   inputRow: {
     flexDirection: 'row',
-    gap: spacing.lg,
   },
   inputPlaceholder: {
     flex: 1,
+    marginRight: spacing.sm,
   },
   addButton: {
     flex: 1,
+    marginHorizontal: spacing.xs,
   },
   currentSeriesSection: {
     marginTop: spacing.md,
@@ -838,14 +841,15 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     padding: spacing.lg,
-    gap: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.gray[300],
   },
   nextButton: {
     flex: 1,
+    marginHorizontal: spacing.xs,
   },
   finishButton: {
     flex: 1,
+    marginLeft: spacing.xs,
   },
 });

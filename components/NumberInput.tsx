@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { colors, borderRadius, spacing, typography } from '../lib/theme';
 
 interface NumberInputProps {
@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
   },
   adjustButtons: {
     flexDirection: 'row',
-    gap: spacing.md,
     marginTop: spacing.md,
   },
   adjustButton: {
@@ -118,6 +117,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm + 2,
     justifyContent: 'center',
     alignItems: 'center',
+    marginHorizontal: spacing.xs,
   },
   adjustButtonText: {
     color: colors.white,
@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
   // Compact styles
   compactContainer: {
     flex: 1,
+    marginHorizontal: spacing.xs,
   },
   compactLabel: {
     fontSize: typography.sizes.sm,
@@ -138,19 +139,25 @@ const styles = StyleSheet.create({
   compactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
   },
   compactInput: {
     width: 70,
+    height: 44,
     backgroundColor: colors.white,
     borderWidth: 2,
     borderColor: colors.primary,
     borderRadius: borderRadius.sm,
-    paddingVertical: spacing.md,
+    paddingVertical: 0,
     paddingHorizontal: spacing.xs,
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.semibold,
     textAlign: 'center',
+    marginHorizontal: spacing.xs,
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+      },
+    }),
   },
   compactButton: {
     flex: 1,

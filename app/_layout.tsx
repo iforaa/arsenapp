@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initDatabase } from '../db/database';
 import { seedDefaultExercises } from '../db/schema';
 import '../lib/i18n';
@@ -22,19 +23,15 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <SafeAreaProvider>
       <StatusBar style="auto" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="workout/[id]"
-          options={{
-            headerShown: true,
-            headerTitle: 'Workout Details',
-            headerBackTitle: 'Back',
-          }}
+          options={{ headerShown: false }}
         />
       </Stack>
-    </>
+    </SafeAreaProvider>
   );
 }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getWorkout, getWorkoutSets, deleteWorkout } from '../../db/queries';
 import { Card, Badge, Button } from '../../components';
 import { colors, spacing, typography, borderRadius } from '../../lib/theme';
@@ -56,6 +57,7 @@ export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [sets, setSets] = useState<(Set & { exercise: Exercise })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,14 +172,15 @@ export default function WorkoutDetailScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          headerTitle: t('workoutDetails'),
-          headerBackTitle: t('back'),
-        }}
-      />
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.topHeader}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>← {t('back')}</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('workoutDetails')}</Text>
+        </View>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.dateText}>{formatDate(workout.date)}</Text>
           <Text style={styles.timeText}>{formatTime(workout.date)}</Text>
@@ -225,7 +228,8 @@ export default function WorkoutDetailScreen() {
           size="lg"
           style={styles.deleteButton}
         />
-      </ScrollView>
+        </ScrollView>
+      </View>
     </>
   );
 }
@@ -253,6 +257,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[300],
+  },
+  backButton: {
+    paddingVertical: spacing.sm,
+    paddingRight: spacing.lg,
+  },
+  backButtonText: {
+    fontSize: 17,
+    color: colors.primary,
+    fontWeight: typography.weights.medium,
+  },
+  headerTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.gray[900],
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     padding: spacing.lg,

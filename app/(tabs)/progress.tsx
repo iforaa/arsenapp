@@ -1,13 +1,15 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { setLanguage } from '../../lib/i18n';
 
 export default function ProgressScreen() {
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
   const currentLang = i18n.language;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{t('progressStats')}</Text>
       <Text style={styles.subtext}>{t('trackPRs')}</Text>
 
@@ -66,7 +68,6 @@ const styles = StyleSheet.create({
   },
   langSelector: {
     flexDirection: 'row',
-    gap: 12,
   },
   langButton: {
     flex: 1,
@@ -75,6 +76,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#F2F2F7',
     alignItems: 'center',
+    marginHorizontal: 6,
   },
   langButtonActive: {
     backgroundColor: '#007AFF',

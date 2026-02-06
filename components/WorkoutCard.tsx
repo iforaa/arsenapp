@@ -1,7 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, borderRadius, spacing, typography } from '../lib/theme';
-import { Badge } from './Badge';
 import type { Workout } from '../types';
 
 interface WorkoutCardProps {
@@ -31,13 +30,6 @@ export function WorkoutCard({ workout, onPress, formatDate, formatTime }: Workou
         </View>
       </View>
 
-      <View style={styles.footer}>
-        {workout.completed ? (
-          <Badge variant="success" label={t('completed')} />
-        ) : (
-          <Badge variant="warning" label={t('inProgress')} />
-        )}
-      </View>
     </TouchableOpacity>
   );
 }
@@ -53,7 +45,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.sm,
   },
   date: {
     fontSize: typography.sizes.xl,
@@ -67,7 +58,6 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: 'row',
-    gap: spacing.sm,
   },
   statBadge: {
     backgroundColor: colors.white,
@@ -75,6 +65,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
     alignItems: 'center',
+    marginLeft: spacing.sm,
   },
   statValue: {
     fontSize: typography.sizes.xl,
@@ -84,10 +75,5 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: typography.sizes.sm,
     color: colors.gray[600],
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.xs,
   },
 });

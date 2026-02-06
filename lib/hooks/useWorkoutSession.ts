@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useWorkoutStore } from '../store';
-import { createWorkout, completeWorkout, getWorkout } from '../../db/queries';
+import { createWorkout, completeWorkout, getWorkout, deleteWorkout } from '../../db/queries';
 
 interface UseWorkoutSessionReturn {
   // State
@@ -20,6 +20,7 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
   const { currentWorkout, currentWorkoutSets, setCurrentWorkout, clearWorkout } = useWorkoutStore();
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [activeSeries, setActiveSeries] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<number | null>(null);
 
   // Calculate series count from current sets
   const uniqueSeriesIds = new Set(
@@ -34,6 +35,7 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
       if (workout) {
         setCurrentWorkout(workout);
         setActiveSeries(`series_${Date.now()}`);
+        setStartTime(Date.now());
         setWorkoutStarted(true);
       }
     } catch (error) {
@@ -51,10 +53,17 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
           await logCurrentSet();
         }
 
-        const duration = Math.floor(
-          (new Date().getTime() - new Date(currentWorkout.date).getTime()) / 1000 / 60
-        );
-        await completeWorkout(currentWorkout.id, duration);
+        // If no sets were added, delete the empty workout
+        if (currentWorkoutSets.length === 0) {
+          await deleteWorkout(currentWorkout.id);
+        } else {
+          // Use local startTime to avoid timezone issues with database
+          const duration = startTime
+            ? Math.floor((Date.now() - startTime) / 1000 / 60)
+            : 0;
+          await completeWorkout(currentWorkout.id, duration);
+        }
+
         clearWorkout();
         setActiveSeries(null);
         setWorkoutStarted(false);
@@ -64,16 +73,19 @@ export function useWorkoutSession(onWorkoutEnd?: () => void): UseWorkoutSessionR
         Alert.alert('Error', 'Failed to finish workout');
       }
     },
-    [currentWorkout, clearWorkout, onWorkoutEnd]
+    [currentWorkout, currentWorkoutSets, clearWorkout, onWorkoutEnd, startTime]
   );
 
-  const goBackToHistory = useCallback(() => {
-    // Go back without finishing - workout stays as in-progress in DB
+  const goBackToHistory = useCallback(async () => {
+    // If no sets were added, delete the empty workout
+    if (currentWorkout && currentWorkoutSets.length === 0) {
+      await deleteWorkout(currentWorkout.id);
+    }
     clearWorkout();
     setActiveSeries(null);
     setWorkoutStarted(false);
     onWorkoutEnd?.();
-  }, [clearWorkout, onWorkoutEnd]);
+  }, [currentWorkout, currentWorkoutSets, clearWorkout, onWorkoutEnd]);
 
   const nextSeries = useCallback(
     async (logCurrentSet?: () => Promise<boolean>) => {

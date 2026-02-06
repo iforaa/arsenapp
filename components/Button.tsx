@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   size_lg_text: {
-    fontSize: typography.sizes.xl,
+    fontSize: 15,
   },
 
   // States
