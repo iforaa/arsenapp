@@ -20,6 +20,7 @@ export default {
   // Input labels
   weight: 'Weight',
   reps: 'Reps',
+  count: 'Count',
   distance: 'Distance',
   calories: 'Calories',
   duration: 'Duration',

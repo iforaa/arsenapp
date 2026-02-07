@@ -223,11 +223,7 @@ export default function HistoryScreen() {
   }
 
   async function handleAddExercise() {
-    if (!currentWorkout || !selectedExercise || !value1) return;
-
-    const isRepsOnly = selectedExercise.tracking_type === 'reps_only';
-    // For reps_only, value2 is not used; for all others, value2 is required
-    if (!isRepsOnly && !value2) return;
+    if (!currentWorkout || !selectedExercise || !value1 || !value2) return;
 
     // Determine tracking mode: use cardio selector for cardio exercises, otherwise use exercise's tracking_type
     const isCardio = checkIsCardio(selectedExercise);
@@ -235,7 +231,7 @@ export default function HistoryScreen() {
 
     try {
       const weight = parseFloat(value1);
-      const reps = isRepsOnly ? parseInt(value1) : parseInt(value2);
+      const reps = parseInt(value2);
       const setId = await addSet(currentWorkout.id, selectedExercise.id, weight, reps, activeSeries, trackingMode);
 
       addSetToWorkout({
@@ -288,8 +284,7 @@ export default function HistoryScreen() {
 
   const config = selectedExercise ? getInputConfig(selectedExercise, cardioTrackingMode, t) : null;
   const isCardio = checkIsCardio(selectedExercise);
-  const isRepsOnly = selectedExercise?.tracking_type === 'reps_only';
-  const canAdd = selectedExercise && value1 && (isRepsOnly || value2);
+  const canAdd = selectedExercise && value1 && value2;
 
   // === RENDER ===
 
@@ -576,7 +571,7 @@ function getInputConfig(exercise: Exercise, cardioMode: string, t: (key: string)
   const configs: Record<string, any> = {
     weight_reps: { label1: t('weight'), unit1: t('kg'), step1: 2.5, label2: t('reps'), unit2: '', step2: 1 },
     time: { label1: t('duration'), unit1: t('sec'), step1: 5, label2: t('reps'), unit2: '', step2: 1 },
-    reps_only: { label1: t('reps'), unit1: '', step1: 1, label2: null },
+    reps_only: { label1: '', unit1: '', step1: 1, label2: t('reps'), unit2: '', step2: 1 },
   };
   return configs[exercise.tracking_type] || { label1: t('value'), unit1: '', step1: 1, label2: t('reps'), step2: 1 };
 }
@@ -591,8 +586,6 @@ function formatSetDisplay(weight: number, reps: number, trackingType: string, t:
       return `${weight}${t('kcal')} × ${reps}`;
     case 'distance':
       return `${weight}${t('m')} × ${reps}`;
-    case 'reps_only':
-      return `${reps}`;
     default:
       return `${weight} × ${reps}`;
   }

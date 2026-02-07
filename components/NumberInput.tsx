@@ -32,7 +32,11 @@ export function NumberInput({
   if (compact) {
     return (
       <View style={styles.compactContainer}>
-        <Text style={styles.compactLabel} numberOfLines={1}>{displayLabel}</Text>
+        {displayLabel ? (
+          <Text style={styles.compactLabel} numberOfLines={1}>{displayLabel}</Text>
+        ) : (
+          <View style={styles.compactLabelPlaceholder} />
+        )}
         <View style={styles.compactRow}>
           <TouchableOpacity
             style={styles.compactButton}
@@ -136,6 +140,10 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     marginBottom: spacing.xs,
     textAlign: 'center',
+  },
+  compactLabelPlaceholder: {
+    height: typography.sizes.sm + spacing.xs,
+    marginBottom: spacing.xs,
   },
   compactRow: {
     flexDirection: 'row',

@@ -124,8 +124,6 @@ export default function WorkoutDetailScreen() {
         return `${set.weight}${t('kcal')} × ${set.reps}`;
       case 'distance':
         return `${set.weight}${t('m')} × ${set.reps}`;
-      case 'reps_only':
-        return `${set.reps}`;
       default:
         return `${set.weight} × ${set.reps}`;
     }

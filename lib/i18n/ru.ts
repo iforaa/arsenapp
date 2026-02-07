@@ -20,6 +20,7 @@ export default {
   // Input labels
   weight: 'Вес',
   reps: 'Повт.',
+  count: 'Кол-во',
   distance: 'Дистанция',
   calories: 'Калории',
   duration: 'Время',
