@@ -22,12 +22,16 @@ export default {
   reps: 'Повт.',
   distance: 'Дистанция',
   calories: 'Калории',
-  duration: 'Длительность',
+  duration: 'Время',
   value: 'Значение',
 
   // Time
   yesterday: 'Вчера',
   min: 'мин',
+  sec: 'сек',
+  m: 'м',
+  kg: 'кг',
+  kcal: 'ккал',
   completed: 'Завершено',
   inProgress: 'В процессе',
 

@@ -117,13 +117,13 @@ export default function WorkoutDetailScreen() {
     const trackingType = set.tracking_mode || set.exercise.tracking_type;
     switch (trackingType) {
       case 'weight_reps':
-        return `${set.weight}kg × ${set.reps}`;
+        return `${set.weight}${t('kg')} × ${set.reps}`;
       case 'time':
         return `${Math.floor(set.weight / 60)}:${(set.weight % 60).toString().padStart(2, '0')} × ${set.reps}`;
       case 'calories':
-        return `${set.weight}kcal × ${set.reps}`;
+        return `${set.weight}${t('kcal')} × ${set.reps}`;
       case 'distance':
-        return `${set.weight}km × ${set.reps}`;
+        return `${set.weight}${t('m')} × ${set.reps}`;
       case 'reps_only':
         return `${set.reps}`;
       default:

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, TextInput, SectionList } from 'react-native';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, TextInput, SectionList, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -88,6 +88,19 @@ export default function HistoryScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFabTooltip, setShowFabTooltip] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+
+  // Shake animation for series badge
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  const triggerShake = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start();
+  }, [shakeAnim]);
 
   // Helper functions for translations
   const getExerciseName = (exercise: Exercise) => {
@@ -238,6 +251,10 @@ export default function HistoryScreen() {
         exercise: selectedExercise,
       });
 
+      // Refresh recent exercises list
+      const recent = await getRecentExercises(100);
+      setRecentExerciseIds(recent.map((e) => e.id));
+
       // Clear selection and close bottom sheet
       setSelectedExercise(null);
       setValue1('');
@@ -260,6 +277,7 @@ export default function HistoryScreen() {
 
   function handleNextSeries() {
     nextSeries();
+    triggerShake();
     setSelectedExercise(null);
     setValue1('');
     setValue2('');
@@ -333,7 +351,9 @@ export default function HistoryScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Text style={styles.backButtonText}>← {t('back')}</Text>
         </TouchableOpacity>
-        <Badge variant="series" label={`${t('series')} ${seriesCount || 1}`} />
+        <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
+          <Badge variant="series" label={`${t('series')} ${seriesCount || 1}`} />
+        </Animated.View>
       </View>
 
       {/* Exercise picker - stretches to footer */}
@@ -382,8 +402,8 @@ export default function HistoryScreen() {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Button title={t('nextSeries')} onPress={handleNextSeries} variant="primary" size="lg" style={styles.nextButton} disabled={currentSeriesSets.length === 0} />
-        <Button title={t('finish')} onPress={handleFinish} variant="danger" size="lg" style={styles.finishButton} />
+        <Button title={`🔗 ${t('nextSeries')}`} onPress={handleNextSeries} variant="warning" size="lg" style={styles.nextButton} disabled={currentSeriesSets.length === 0} />
+        <Button title={`🏁 ${t('finish')}`} onPress={handleFinish} variant="danger" size="lg" style={styles.finishButton} />
       </View>
 
       {/* Bottom Sheet for exercise input */}
@@ -398,12 +418,14 @@ export default function HistoryScreen() {
           <View style={styles.sheetContent}>
             {/* Current series info */}
             <View style={styles.seriesInfo}>
-              <Text style={styles.seriesTitle}>{t('series')} {seriesCount}</Text>
+              <View style={styles.seriesBadge}>
+                <Text style={styles.seriesTitle}>🔗 {t('series')} {seriesCount}</Text>
+              </View>
               {currentSeriesSets.length > 0 ? (
                 <View style={styles.seriesExercises}>
                   {currentSeriesSets.map((set, index) => (
                     <Text key={set.id} style={styles.seriesExerciseItem}>
-                      {index + 1}. {set.exercise ? getExerciseName(set.exercise) : ''} — {set.exercise ? formatSetDisplay(set.weight, set.reps, set.tracking_mode || set.exercise.tracking_type) : ''}
+                      {index + 1}. {set.exercise ? getExerciseName(set.exercise) : ''} — {set.exercise ? formatSetDisplay(set.weight, set.reps, set.tracking_mode || set.exercise.tracking_type, t) : ''}
                     </Text>
                   ))}
                 </View>
@@ -413,28 +435,30 @@ export default function HistoryScreen() {
             </View>
 
             <View style={styles.sheetHeader}>
-              <View style={styles.sheetHeaderText}>
-                <Text style={styles.sheetTitle}>{getExerciseName(selectedExercise)}</Text>
-                <Text style={styles.sheetSubtitle}>
-                  {selectedExercise.muscle_groups.map(getMuscleGroupName).join(', ')}
-                </Text>
-              </View>
-              {isCardio && (
-                <View style={styles.modeSelector}>
-                  {(['distance', 'calories', 'time'] as const).map((mode) => (
+              <Text style={styles.sheetTitle}>{getExerciseName(selectedExercise)}</Text>
+              <Text style={styles.sheetSubtitle}>
+                {selectedExercise.muscle_groups.map(getMuscleGroupName).join(', ')}
+              </Text>
+            </View>
+
+            {isCardio && (
+              <View style={styles.modeSelectorRow}>
+                {(['distance', 'calories', 'time'] as const).map((mode) => {
+                  const modeEmoji = mode === 'distance' ? '📏' : mode === 'calories' ? '🔥' : '⏱️';
+                  return (
                     <TouchableOpacity
                       key={mode}
                       style={[styles.modeButton, cardioTrackingMode === mode && styles.modeButtonActive]}
                       onPress={() => setCardioTrackingMode(mode)}
                     >
                       <Text style={[styles.modeButtonText, cardioTrackingMode === mode && styles.modeButtonTextActive]}>
-                        {t(mode === 'time' ? 'duration' : mode)}
+                        {modeEmoji} {t(mode === 'time' ? 'duration' : mode)}
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
+                  );
+                })}
+              </View>
+            )}
 
             <View style={styles.sheetInputRow}>
               {config.label2 ? (
@@ -472,7 +496,7 @@ export default function HistoryScreen() {
             </View>
 
             <Button
-              title={t('add')}
+              title={`✓ ${t('add')}`}
               onPress={handleAddExercise}
               variant="success"
               size="lg"
@@ -542,31 +566,31 @@ function getInputConfig(exercise: Exercise, cardioMode: string, t: (key: string)
 
   if (isCardio) {
     const configs: Record<string, any> = {
-      distance: { label1: t('distance'), unit1: 'km', step1: 0.5, label2: t('reps'), unit2: '', step2: 1 },
-      calories: { label1: t('calories'), unit1: 'kcal', step1: 1, label2: t('reps'), unit2: '', step2: 1 },
-      time: { label1: t('duration'), unit1: t('min'), step1: 1, label2: t('reps'), unit2: '', step2: 1 },
+      distance: { label1: t('distance'), unit1: t('m'), step1: 100, label2: t('reps'), unit2: '', step2: 1 },
+      calories: { label1: t('calories'), unit1: t('kcal'), step1: 1, label2: t('reps'), unit2: '', step2: 1 },
+      time: { label1: t('duration'), unit1: t('sec'), step1: 5, label2: t('reps'), unit2: '', step2: 1 },
     };
     return configs[cardioMode];
   }
 
   const configs: Record<string, any> = {
-    weight_reps: { label1: t('weight'), unit1: 'kg', step1: 2.5, label2: t('reps'), unit2: '', step2: 1 },
-    time: { label1: t('duration'), unit1: 'seconds', step1: 5, label2: t('reps'), unit2: '', step2: 1 },
+    weight_reps: { label1: t('weight'), unit1: t('kg'), step1: 2.5, label2: t('reps'), unit2: '', step2: 1 },
+    time: { label1: t('duration'), unit1: t('sec'), step1: 5, label2: t('reps'), unit2: '', step2: 1 },
     reps_only: { label1: t('reps'), unit1: '', step1: 1, label2: null },
   };
   return configs[exercise.tracking_type] || { label1: t('value'), unit1: '', step1: 1, label2: t('reps'), step2: 1 };
 }
 
-function formatSetDisplay(weight: number, reps: number, trackingType: string): string {
+function formatSetDisplay(weight: number, reps: number, trackingType: string, t: (key: string) => string): string {
   switch (trackingType) {
     case 'weight_reps':
-      return `${weight}kg × ${reps}`;
+      return `${weight}${t('kg')} × ${reps}`;
     case 'time':
       return `${Math.floor(weight / 60)}:${(weight % 60).toString().padStart(2, '0')} × ${reps}`;
     case 'calories':
-      return `${weight}kcal × ${reps}`;
+      return `${weight}${t('kcal')} × ${reps}`;
     case 'distance':
-      return `${weight}km × ${reps}`;
+      return `${weight}${t('m')} × ${reps}`;
     case 'reps_only':
       return `${reps}`;
     default:
@@ -746,16 +770,19 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
     color: colors.gray[500],
   },
-  modeSelector: {
+  modeSelectorRow: {
     flexDirection: 'row',
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
   modeButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
     borderRadius: borderRadius.sm,
     backgroundColor: colors.gray[200],
-    alignItems: 'center',
-    marginLeft: spacing.xs,
   },
   modeButtonActive: {
     backgroundColor: colors.primary,
@@ -764,6 +791,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
     color: colors.gray[600],
+    textAlign: 'center',
   },
   modeButtonTextActive: {
     color: colors.white,
@@ -796,11 +824,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[200],
   },
-  seriesTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    color: colors.primary,
+  seriesBadge: {
+    backgroundColor: colors.warning,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    alignSelf: 'flex-start',
     marginBottom: spacing.sm,
+  },
+  seriesTitle: {
+    fontSize: typography.sizes.sm + 1,
+    fontWeight: typography.weights.semibold,
+    color: colors.white,
   },
   seriesExercises: {
     marginLeft: spacing.xs,
@@ -816,13 +851,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  sheetHeaderText: {
-    flex: 1,
+    marginBottom: spacing.md,
   },
   sheetTitle: {
     fontSize: typography.sizes.xl,

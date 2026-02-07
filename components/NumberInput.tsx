@@ -26,12 +26,13 @@ export function NumberInput({
     onChangeValue(Math.max(0, newValue).toString());
   }
 
+  // For non-compact mode, keep the original combined label
   const displayLabel = unit ? `${label} (${unit})` : label;
 
   if (compact) {
     return (
       <View style={styles.compactContainer}>
-        <Text style={styles.compactLabel}>{displayLabel}</Text>
+        <Text style={styles.compactLabel} numberOfLines={1}>{displayLabel}</Text>
         <View style={styles.compactRow}>
           <TouchableOpacity
             style={styles.compactButton}
@@ -141,18 +142,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   compactInput: {
-    width: 70,
+    flex: 1,
     height: 44,
     backgroundColor: colors.white,
     borderWidth: 2,
     borderColor: colors.primary,
     borderRadius: borderRadius.sm,
     paddingVertical: 0,
-    paddingHorizontal: spacing.xs,
-    fontSize: typography.sizes.xl,
+    paddingHorizontal: spacing.sm,
+    marginHorizontal: spacing.xs,
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
     textAlign: 'center',
-    marginHorizontal: spacing.xs,
     ...Platform.select({
       web: {
         outlineStyle: 'none',
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
     }),
   },
   compactButton: {
-    flex: 1,
+    width: 44,
     height: 44,
     backgroundColor: colors.primary,
     borderRadius: borderRadius.sm,

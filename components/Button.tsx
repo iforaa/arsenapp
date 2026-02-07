@@ -4,7 +4,7 @@ import { colors, borderRadius, spacing, typography } from '../lib/theme';
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   style?: ViewStyle;
@@ -73,6 +73,12 @@ const styles = StyleSheet.create({
   successText: {
     color: colors.white,
   },
+  warning: {
+    backgroundColor: colors.warning,
+  },
+  warningText: {
+    color: colors.white,
+  },
   ghost: {
     backgroundColor: 'transparent',
   },
@@ -96,7 +102,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
   },
   size_lg: {
-    paddingVertical: spacing.sm,
+    height: 44,
     paddingHorizontal: spacing.lg,
   },
   size_lg_text: {

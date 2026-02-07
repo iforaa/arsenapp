@@ -28,6 +28,10 @@ export default {
   // Time
   yesterday: 'Yesterday',
   min: 'min',
+  sec: 'sec',
+  m: 'm',
+  kg: 'kg',
+  kcal: 'kcal',
   completed: 'Completed',
   inProgress: 'In Progress',
 
